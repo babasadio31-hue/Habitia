@@ -1,0 +1,2314 @@
+<!DOCTYPE html>
+<html lang="fr" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Habitia | Premium Real Estate SaaS Preview</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              400: '#60a5fa',
+              500: '#2563eb',
+              600: '#1d4ed8',
+              700: '#1e40af',
+            },
+            success: { 50: '#ecfdf5', 500: '#10b981', 600: '#059669' },
+            warning: { 50: '#fffbeb', 500: '#f59e0b', 600: '#d97706' },
+            danger: { 50: '#fef2f2', 500: '#ef4444', 600: '#dc2626' }
+          },
+          fontFamily: {
+            sans: ['Outfit', 'Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Google Fonts & Leaflet -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <style>
+    body { font-family: 'Outfit', 'Inter', sans-serif; }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+    .dark ::-webkit-scrollbar-thumb { background: #334155; }
+    /* Glassmorphism */
+    .glass {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .dark .glass {
+      background: rgba(15, 23, 42, 0.75);
+    }
+    /* Leaflet dimensions */
+    #leaflet-map { height: 220px; border-radius: 0.75rem; z-index: 10; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-200 antialiased">
+
+  <!-- MOCK TOAST NOTIFICATION -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-800 dark:border-slate-200">
+      <span id="toast-icon">✨</span>
+      <span id="toast-msg" class="text-xs font-semibold">Message</span>
+    </div>
+  </div>
+
+  <!-- APP CONTAINER -->
+  <div id="app-root">
+
+    <!-- 1. LOGIN SCREEN -->
+    <div id="screen-login" class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 relative">
+      <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary-500/5 blur-[120px]"></div>
+      <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-primary-500/5 blur-[120px]"></div>
+
+      <div class="w-full max-w-md z-10">
+        <div class="flex flex-col items-center mb-8">
+          <div class="p-3 bg-gradient-to-tr from-primary-500 to-primary-600 rounded-2xl text-white shadow-lg shadow-primary-500/20 mb-3 text-3xl">🏢</div>
+          <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Habitia</h1>
+          <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Système de gestion immobilière premium</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-8 shadow-2xl">
+          <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-6">Connexion Démo</h2>
+          
+          <div id="login-error" class="hidden mb-4 p-3 bg-danger-50 border border-danger-100 dark:bg-danger-950/20 dark:border-danger-900/30 rounded-lg text-danger-600 dark:text-danger-400 text-xs font-semibold flex items-center gap-2">
+            <span>⚠️</span> <span id="login-error-text">Email ou mot de passe incorrect.</span>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-2xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Adresse Email</label>
+              <input id="login-email" type="email" value="admin@habitia.com" class="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-primary-500 text-slate-900 dark:text-slate-100">
+            </div>
+            <div>
+              <label class="block text-2xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Mot de passe</label>
+              <input id="login-pwd" type="password" value="admin123" class="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-primary-500 text-slate-900 dark:text-slate-100">
+            </div>
+            <button onclick="handleLogin()" class="w-full py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-lg text-sm font-semibold transition-all active:scale-95 shadow-md shadow-primary-500/15">
+              Se connecter
+            </button>
+          </div>
+          <div class="mt-6 text-center text-3xs text-slate-400">
+            Identifiants démo : <span class="font-bold text-slate-500">admin@habitia.com</span> / <span class="font-bold text-slate-500">admin123</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. MAIN LAYOUT AND PAGES -->
+    <div id="screen-main" class="hidden min-h-screen flex bg-slate-50 dark:bg-slate-950">
+      
+      <!-- SIDEBAR -->
+      <aside class="w-64 border-r border-slate-200/60 dark:border-slate-800/80 bg-white dark:bg-slate-900 flex flex-col shrink-0">
+        <div class="h-16 flex items-center gap-3 px-6 border-b border-slate-100 dark:border-slate-800/80">
+          <div class="p-2 bg-primary-500 rounded-lg text-white text-xs">🏢</div>
+          <span class="text-xl font-black bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent">Habitia</span>
+        </div>
+
+        <nav id="sidebar-nav" class="p-4 space-y-1.5 flex-1 overflow-y-auto">
+          <!-- Populated by JS -->
+        </nav>
+
+        <div class="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-primary-500 text-white flex items-center justify-center font-bold text-sm">SD</div>
+            <div class="text-left leading-none">
+              <span class="text-xs font-bold block text-slate-700 dark:text-slate-300">Sadio Diallo</span>
+              <span class="text-3xs text-primary-500 uppercase tracking-widest font-bold">Admin</span>
+            </div>
+          </div>
+          <button onclick="handleLogout()" class="p-2 text-slate-400 hover:text-danger-500 rounded-xl hover:bg-danger-50 dark:hover:bg-danger-950/20">
+            🚪
+          </button>
+        </div>
+      </aside>
+
+      <!-- CONTENT WRAPPER -->
+      <div class="flex-1 flex flex-col min-w-0 min-h-screen">
+        
+        <!-- HEADER -->
+        <header class="h-16 border-b border-slate-200/60 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-30">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Habitia Immobilier Premium</span>
+          <div class="flex items-center gap-4">
+            <button onclick="toggleTheme()" class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl transition-colors">
+              <span id="theme-icon">🌙</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- MAIN WINDOW -->
+        <main id="main-content" class="p-8 max-w-7xl w-full mx-auto space-y-6">
+          <!-- Dynamic page content loaded here -->
+        </main>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MODALS CONTAINER -->
+  <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+    <div class="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" onclick="closeModal()"></div>
+    <div class="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl p-6 z-10 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <h3 id="modal-title" class="text-base font-bold text-slate-900 dark:text-white">Modal Title</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg">✕</button>
+      </div>
+      <div id="modal-body" class="py-4 overflow-y-auto flex-1 min-h-0">
+        <!-- Dynamic Modal Form -->
+      </div>
+    </div>
+  </div>
+
+  <!-- CORE SCRIPT LOGIC -->
+  <script>
+    // State Store
+    const state = {
+      theme: 'light',
+      currentTab: 'dashboard',
+      selectedOwnerId: null,
+      ownerSubTab: 'info',
+      isLoggedIn: true,
+      proprietaires: [
+        { id: 'prop-1', nom: 'Ndiaye', prenom: 'Cheikh', email: 'cheikh.ndiaye@gmail.com', telephone: '+221 77 123 45 67', adresse: 'Almadies, Dakar', cinPasseport: 'A1234567B', biensCount: 2, docs: ['Contrat_Mandat.pdf'] },
+        { id: 'prop-2', nom: 'Sall', prenom: 'Aminata', email: 'aminata.sall@outlook.com', telephone: '+221 78 987 65 43', adresse: 'Fann Résidence, Dakar', cinPasseport: 'B9876543C', biensCount: 2, docs: [] }
+      ],
+      locataires: [
+        { id: 'loc-1', nom: 'Kaba', prenom: 'Ibrahima', email: 'ibrahima.kaba@gmail.com', telephone: '+221 77 222 33 44', employeur: 'Orange Sénégal', garant: 'Amadou Kaba', statut: 'actif', bien: 'Almadies, Face Clinique des Grès' },
+        { id: 'loc-2', nom: 'Fall', prenom: 'Mariama', email: 'mariama.fall@hotmail.com', telephone: '+221 76 333 44 55', employeur: 'BCEAO', garant: 'Ousmane Fall', statut: 'actif', bien: 'Mermoz, Rue MZ-102' }
+      ],
+      biens: [
+        { id: 'bien-1', adresse: 'Almadies, Face Clinique des Grès', ville: 'Dakar', type: 'villa', surface: 350, statut: 'loué', proprietaire: 'Cheikh Ndiaye', charges: ['Syndic : 50k FCFA', 'Gardiennage : 30k FCFA'], photo: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=500&auto=format&fit=crop' },
+        { id: 'bien-2', adresse: 'Mermoz, Rue MZ-102', ville: 'Dakar', type: 'appartement', surface: 120, statut: 'loué', proprietaire: 'Cheikh Ndiaye', charges: ['Ascenseur : 15k FCFA'], photo: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&auto=format&fit=crop' },
+        { id: 'bien-3', adresse: 'Plateau, Avenue Pompidou', ville: 'Dakar', type: 'bureau', surface: 80, statut: 'disponible', proprietaire: 'Aminata Sall', charges: [], photo: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&auto=format&fit=crop' }
+      ],
+      chantiers: [
+        { id: 'chan-1', bien: 'Mermoz, Rue MZ-102', titre: 'Rénovation Électricité & Peinture', budget: 4500000, avancement: 65, statut: 'en_cours', debut: '2026-05-10', fin: '2026-07-15', prestataires: [{ nom: 'ETS Bati-Pro', spe: 'Peinture', contact: '776001122', montant: 3000000 }, { nom: 'Sene-Plomb', spe: 'Plomberie', contact: '785004488', montant: 1800000 }] }
+      ],
+      personnel: [
+        { id: 'pers-1', nom: 'Goudiaby Lamine', poste: 'Gestionnaire', email: 'goudiaby@habitia.com', telephone: '+221 77 412 33 22', salaire: 450000, date: '2024-01-15', absences: [{ date: '10-24 Aout', motif: 'Congé Annuel', statut: 'validé' }] }
+      ],
+      compta: [
+        { id: 'pay-1', type: 'encaissement', categorie: 'Loyer', montant: 1500000, date: '2026-06-05', libelle: 'Loyer Juin - Ibrahima Kaba' },
+        { id: 'exp-1', type: 'décaissement', categorie: 'Travaux', montant: 1500000, date: '2026-05-15', libelle: 'Acompte Plomberie Ngor' }
+      ],
+      withdrawData: {
+        'prop-1': {
+          companyInfo: "LA SOCIETE IMMOBILIERE HAMET SEMEGA\nvde Nioro du Sahel et Associés SARL\nSise à Baco-djicoroni Golf Non loin de L'Hôtel MICASA\nTél : (+223) 78-26-60-09 / 65-10-81-44\nNuméro d'identification fiscale N° 085145669 E.",
+          logoUrl: "https://i.ibb.co/L5VbXhC/hamet-logo.png",
+          date: new Date().toLocaleDateString('fr-FR'),
+          title: "RETRAIT DE LOYER",
+          ownerText: "Monsieur Cheikh Ndiaye, propriétaire d'un immeuble sis au GOLF (Immeuble I : appartements et magasin)",
+          subText: "Nous vous informons que nous débitons votre compte des opérations suivantes :",
+          fraisRate: 10,
+          gerantName: "Mr Amadou Semega",
+          beneficiaireName: "Cheikh Ndiaye",
+          lines: [
+            { locataireName: "Mr Soumaila", loyerMensuel: 25000, moisActuel: "janv-26", montantPaye: 25000, reliquat: 0, statut: "En avance" },
+            { locataireName: "Mr Mohamed Mouktar Salem", loyerMensuel: 150000, moisActuel: "janv-26", montantPaye: 125000, reliquat: 25000, statut: "À jour" },
+            { locataireName: "Mr Diarra", loyerMensuel: 150000, moisActuel: "janv-26", montantPaye: 100000, reliquat: 50000, statut: "En retard" }
+          ]
+        },
+        'prop-2': {
+          companyInfo: "LA SOCIETE IMMOBILIERE HAMET SEMEGA\nvde Nioro du Sahel et Associés SARL\nSise à Baco-djicoroni Golf Non loin de L'Hôtel MICASA\nTél : (+223) 78-26-60-09 / 65-10-81-44\nNuméro d'identification fiscale N° 085145669 E.",
+          logoUrl: "https://i.ibb.co/L5VbXhC/hamet-logo.png",
+          date: new Date().toLocaleDateString('fr-FR'),
+          title: "RETRAIT DE LOYER",
+          ownerText: "Monsieur Aminata Sall, propriétaire d'un immeuble sis à Plateau (Avenue Pompidou Office Block)",
+          subText: "Nous vous informons que nous débitons votre compte des opérations suivantes :",
+          fraisRate: 10,
+          gerantName: "Mr Amadou Semega",
+          beneficiaireName: "Aminata Sall",
+          lines: [
+            { locataireName: "Sékou Traoré", loyerMensuel: 800000, moisActuel: "juin-26", montantPaye: 800000, reliquat: 0, statut: "À jour" }
+          ]
+        }
+      }
+    };
+
+    function saveWithdrawDataToLocal() {
+      try {
+        localStorage.setItem('habitia_withdraw_data_preview', JSON.stringify(state.withdrawData));
+      } catch (e) {}
+    }
+
+    try {
+      const savedWithdrawData = localStorage.getItem('habitia_withdraw_data_preview');
+      if (savedWithdrawData) {
+        state.withdrawData = JSON.parse(savedWithdrawData);
+      }
+    } catch (e) {}
+
+    // Tabs Menu definitions
+    const menuItems = [
+      { id: 'dashboard', name: 'Tableau de bord', icon: '📊' },
+      { id: 'proprietaires', name: 'Propriétaires', icon: '👥' },
+      { id: 'locataires', name: 'Locataires', icon: '👤' },
+      { id: 'biens', name: 'Biens immobiliers', icon: '🏠' },
+      { id: 'construction', name: 'Construction', icon: '🔨' },
+      { id: 'comptabilite', name: 'Comptabilité', icon: '🧾' },
+      { id: 'personnels', name: 'Personnels', icon: '💼' },
+      { id: 'parametres', name: 'Paramètres', icon: '⚙️' }
+    ];
+
+    // Show Notification Toast
+    function showToast(msg, icon = '✨') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      document.getElementById('toast-icon').innerText = icon;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    // Modal Control
+    function showModal(title, contentHtml) {
+      document.getElementById('modal-title').innerText = title;
+      document.getElementById('modal-body').innerHTML = contentHtml;
+      document.getElementById('modal-container').classList.remove('hidden');
+    }
+    function closeModal() {
+      document.getElementById('modal-container').classList.add('hidden');
+    }
+
+    // Theme Toggle
+    function toggleTheme() {
+      state.theme = state.theme === 'light' ? 'dark' : 'light';
+      const root = document.documentElement;
+      root.classList.remove('light', 'dark');
+      root.classList.add(state.theme);
+      document.getElementById('theme-icon').innerText = state.theme === 'light' ? '🌙' : '☀️';
+      showToast(`Mode ${state.theme === 'light' ? 'Clair' : 'Sombre'} activé !`);
+    }
+
+    // Authentication Actions
+    function handleLogin() {
+      console.log("handleLogin: Start");
+      const emailEl = document.getElementById('login-email');
+      const pwdEl = document.getElementById('login-pwd');
+      console.log("handleLogin: Elements found:", !!emailEl, !!pwdEl);
+      if (!emailEl || !pwdEl) {
+        console.error("handleLogin: Elements are null!");
+        return;
+      }
+      const email = emailEl.value;
+      const pwd = pwdEl.value;
+      console.log("handleLogin: email:", email, "pwd length:", pwd ? pwd.length : 0);
+      if (email && pwd) {
+        state.isLoggedIn = true;
+        const screenLogin = document.getElementById('screen-login');
+        const screenMain = document.getElementById('screen-main');
+        console.log("handleLogin: Screens found:", !!screenLogin, !!screenMain);
+        if (screenLogin && screenMain) {
+          screenLogin.classList.add('hidden');
+          screenMain.classList.remove('hidden');
+          renderSidebar();
+          navigateTab('dashboard');
+          showToast("Connexion réussie !");
+          console.log("handleLogin: Navigation complete, state.isLoggedIn:", state.isLoggedIn);
+        } else {
+          console.error("handleLogin: screenLogin or screenMain is null!");
+        }
+      } else {
+        console.warn("handleLogin: Email or password empty");
+        const err = document.getElementById('login-error');
+        if (err) err.classList.remove('hidden');
+      }
+    }
+    function handleLogout() {
+      state.isLoggedIn = false;
+      document.getElementById('screen-main').classList.add('hidden');
+      document.getElementById('screen-login').classList.remove('hidden');
+      document.getElementById('login-error').classList.add('hidden');
+      showToast("Déconnecté avec succès.");
+    }
+
+    // Sidebar UI Renderer
+    function renderSidebar() {
+      const container = document.getElementById('sidebar-nav');
+      container.innerHTML = menuItems.map(item => `
+        <button onclick="navigateTab('${item.id}')" id="btn-nav-${item.id}" class="w-full flex items-center gap-3.5 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-150 ${
+          state.currentTab === item.id 
+            ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/15'
+            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-100'
+        }">
+          <span>${item.icon}</span>
+          <span>${item.name}</span>
+        </button>
+      `).join('');
+    }
+
+    // Navigation Tab
+    function navigateTab(tabId) {
+      state.currentTab = tabId;
+      state.selectedOwnerId = null;
+      renderSidebar();
+      renderPage();
+    }
+
+    // Page Content Router/Renderer
+    function renderPage() {
+      const container = document.getElementById('main-content');
+      
+      if (state.currentTab === 'dashboard') {
+        // KPI calculations
+        const totalBiens = state.biens.length;
+        const biensLoues = state.biens.filter(b => b.statut === 'loué').length;
+        const rentRate = Math.round((biensLoues / totalBiens) * 100);
+
+        container.innerHTML = `
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Tableau de bord</h1>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Aperçu en temps réel de votre parc et de la comptabilité.</p>
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-xl shadow-premium">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider block">Total Biens</span>
+                  <span class="text-2xl font-black text-slate-800 dark:text-white mt-1 block">${totalBiens}</span>
+                </div>
+                <div class="text-2xl p-2 bg-primary-50 dark:bg-primary-950/20 rounded-xl">🏢</div>
+              </div>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-xl shadow-premium">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider block">Biens Loués</span>
+                  <span class="text-2xl font-black text-slate-800 dark:text-white mt-1 block">${biensLoues}</span>
+                </div>
+                <div class="text-2xl p-2 bg-success-50 dark:bg-success-950/20 rounded-xl">🏠</div>
+              </div>
+              <p class="text-3xs text-success-500 font-bold mt-2">Taux d'occupation : ${rentRate}%</p>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-xl shadow-premium">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider block">Loyers perçus</span>
+                  <span class="text-lg font-black text-slate-800 dark:text-white mt-1 block">1 500 000 FCFA</span>
+                </div>
+                <div class="text-2xl p-2 bg-warning-50 dark:bg-warning-950/20 rounded-xl">🧾</div>
+              </div>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-xl shadow-premium">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider block">Chantiers</span>
+                  <span class="text-2xl font-black text-slate-800 dark:text-white mt-1 block">${state.chantiers.length}</span>
+                </div>
+                <div class="text-2xl p-2 bg-danger-50 dark:bg-danger-950/20 rounded-xl">🔨</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Area -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-xl shadow-premium lg:col-span-2 flex flex-col justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-800 dark:text-white">Loyers Encaissés (SVG Graphique)</h3>
+                <p class="text-3xs text-slate-400">Évolution mensuelle sur 6 mois</p>
+              </div>
+              <!-- Mock SVG chart -->
+              <div class="h-44 w-full flex items-end justify-between px-4 pt-6">
+                <div class="w-12 text-center"><div class="bg-primary-500 h-24 rounded-t-lg mx-auto w-6"></div><span class="text-3xs text-slate-400">Jan</span></div>
+                <div class="w-12 text-center"><div class="bg-primary-500 h-28 rounded-t-lg mx-auto w-6"></div><span class="text-3xs text-slate-400">Feb</span></div>
+                <div class="w-12 text-center"><div class="bg-primary-500 h-32 rounded-t-lg mx-auto w-6"></div><span class="text-3xs text-slate-400">Mar</span></div>
+                <div class="w-12 text-center"><div class="bg-primary-500 h-36 rounded-t-lg mx-auto w-6"></div><span class="text-3xs text-slate-400">Apr</span></div>
+                <div class="w-12 text-center"><div class="bg-primary-500 h-26 rounded-t-lg mx-auto w-6"></div><span class="text-3xs text-slate-400">May</span></div>
+                <div class="w-12 text-center"><div class="bg-primary-500 h-36 rounded-t-lg mx-auto w-6"></div><span class="text-3xs text-slate-400">Jun</span></div>
+              </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-xl shadow-premium flex flex-col justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-800 dark:text-white">Répartition</h3>
+                <p class="text-3xs text-slate-400">Disponibilité du parc immobilier</p>
+              </div>
+              <div class="flex items-center justify-center p-4">
+                <!-- Simple CSS Pie simulation -->
+                <div class="w-24 h-24 rounded-full border-8 border-primary-500 flex items-center justify-center text-xs font-bold text-primary-500">
+                  ${rentRate}% Loués
+                </div>
+              </div>
+              <div class="space-y-1 text-3xs text-slate-400">
+                <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-primary-500 rounded-full block"></span> Loués : ${biensLoues}</div>
+                <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-success-500 rounded-full block"></span> Disponibles : ${state.biens.filter(b=>b.statut==='disponible').length}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      else if (state.currentTab === 'proprietaires') {
+        if (state.selectedOwnerId) {
+          renderOwnerDetail();
+          return;
+        }
+        container.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Propriétaires</h1>
+              <p class="text-xs text-slate-400 mt-1">Gérez vos clients bailleurs et mandat de gestion.</p>
+            </div>
+            <button onclick="openAddOwner()" class="px-4 py-2 bg-primary-500 text-white rounded-lg text-xs font-semibold flex items-center gap-2">
+              <span>+</span> Ajouter un Propriétaire
+            </button>
+          </div>
+
+          <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden shadow-premium">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/50 border-b border-slate-100 dark:border-slate-800 dark:bg-slate-800/40">
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Nom & Prénom</th>
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Email</th>
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Téléphone</th>
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Mandat</th>
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
+                ${state.proprietaires.map(p => `
+                  <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
+                    <td class="px-5 py-4 text-xs font-bold">
+                      <button onclick="selectOwner('${p.id}')" class="text-primary-500 hover:text-primary-600 hover:underline font-bold text-left">
+                        ${p.prenom} ${p.nom}
+                      </button>
+                    </td>
+                    <td class="px-5 py-4 text-xs text-slate-500 dark:text-slate-400">${p.email}</td>
+                    <td class="px-5 py-4 text-xs text-slate-500 dark:text-slate-400 font-mono">${p.telephone}</td>
+                    <td class="px-5 py-4 text-xs">
+                      <span class="px-2 py-0.5 rounded-full text-3xs font-semibold bg-primary-50 text-primary-500 border border-primary-100">Actif</span>
+                    </td>
+                    <td class="px-5 py-4 text-xs flex gap-2">
+                      <button onclick="selectOwner('${p.id}')" class="text-primary-500 font-bold hover:underline">Fiche</button>
+                      <button onclick="deleteOwner('${p.id}')" class="text-danger-500 font-bold hover:underline">Supprimer</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+      
+      else if (state.currentTab === 'locataires') {
+        container.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Locataires</h1>
+              <p class="text-xs text-slate-400 mt-1">Fiches locataires, garants et facturations.</p>
+            </div>
+            <button onclick="openAddTenant()" class="px-4 py-2 bg-primary-500 text-white rounded-lg text-xs font-semibold">
+              + Ajouter un Locataire
+            </button>
+          </div>
+
+          <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden shadow-premium">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/50 border-b border-slate-100 dark:border-slate-800 dark:bg-slate-800/40">
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Nom & Prénom</th>
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Logement</th>
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Employeur</th>
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Statut</th>
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
+                ${state.locataires.map(l => `
+                  <tr class="hover:bg-slate-50/40 dark:hover:bg-slate-800/10">
+                    <td class="px-5 py-4 font-bold text-xs text-primary-500 hover:underline cursor-pointer" onclick="viewTenantBilan('${l.id}')">${l.prenom} ${l.nom}</td>
+                    <td class="px-5 py-4 text-xs text-slate-500 dark:text-slate-400">${l.bien}</td>
+                    <td class="px-5 py-4 text-xs text-slate-500 dark:text-slate-400">${l.employeur}</td>
+                    <td class="px-5 py-4 text-xs">
+                      <span class="px-2 py-0.5 rounded-full text-3xs font-semibold bg-success-50 text-success-500 border border-success-100">Actif</span>
+                    </td>
+                    <td class="px-5 py-4 text-xs flex gap-2">
+                      <button onclick="sendQuittanceEmail('${l.prenom} ${l.nom}')" class="text-warning-500 font-bold hover:underline">📧 Quittance</button>
+                      <button onclick="deleteTenant('${l.id}')" class="text-danger-500 font-bold hover:underline">Supprimer</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+      
+      else if (state.currentTab === 'biens') {
+        container.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Biens Immobiliers</h1>
+              <p class="text-xs text-slate-400 mt-1">Gérez vos biens immobiliers et géolocalisez-les.</p>
+            </div>
+            <button onclick="openAddBien()" class="px-4 py-2 bg-primary-500 text-white rounded-lg text-xs font-semibold">
+              + Ajouter un Bien
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-5">
+              ${state.biens.map(b => `
+                <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden shadow-premium flex flex-col justify-between">
+                  <div class="h-32 bg-slate-200">
+                    <img src="${b.photo}" class="w-full h-full object-cover" />
+                  </div>
+                  <div class="p-4 space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="px-2 py-0.5 rounded-full text-3xs font-semibold bg-primary-50 text-primary-500 capitalize">${b.type}</span>
+                      <span class="px-2 py-0.5 rounded-full text-3xs font-semibold bg-success-50 text-success-500 capitalize">${b.statut}</span>
+                    </div>
+                    <h3 class="text-xs font-bold text-slate-800 dark:text-white block">${b.adresse}</h3>
+                    <p class="text-3xs text-slate-400">${b.ville} • ${b.surface} m²</p>
+                  </div>
+                  <div class="p-4 bg-slate-50 dark:bg-slate-800/20 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                    <button onclick="showBienMap('${b.adresse}')" class="px-3 py-1 bg-primary-500 text-white text-3xs font-bold rounded-lg hover:bg-primary-600">🗺️ Localiser</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+
+            <!-- Leaflet Container -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-xl shadow-premium space-y-4">
+              <h3 class="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">Géolocalisation du Bien</h3>
+              <div id="leaflet-map"></div>
+            </div>
+          </div>
+        `;
+        
+        // Load map instantly
+        setTimeout(() => {
+          initializeMap([14.7167, -17.4677], "Dakar Central Office");
+        }, 100);
+      }
+
+      else if (state.currentTab === 'construction') {
+        container.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Construction & Travaux</h1>
+              <p class="text-xs text-slate-400 mt-1">Suivi de chantiers de rénovation et prestataires.</p>
+            </div>
+          </div>
+
+          ${state.chantiers.map(c => `
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-xl shadow-premium space-y-4">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="text-sm font-bold text-slate-800 dark:text-white">${c.titre}</h3>
+                  <span class="text-3xs text-slate-400">Logement : ${c.bien}</span>
+                </div>
+                <span class="px-2 py-0.5 rounded-full text-3xs font-semibold bg-warning-50 text-warning-500 uppercase">${c.statut}</span>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-3xs text-slate-400">
+                  <span>Progression globale</span>
+                  <span class="font-bold text-slate-700 dark:text-slate-300">${c.avancement}%</span>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                  <div class="bg-primary-500 h-full rounded-full" style="width: ${c.avancement}%"></div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div>
+                  <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider block">Budget total</span>
+                  <span class="text-sm font-black text-slate-800 dark:text-white">${c.budget.toLocaleString()} FCFA</span>
+                </div>
+                <div>
+                  <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider block">Devis prestataires</span>
+                  <span class="text-sm font-black text-danger-500">4 800 000 FCFA</span>
+                  <span class="text-3xs font-semibold text-danger-500 block">⚠️ Attention : Dépassement budgétaire !</span>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        `;
+      }
+
+      else if (state.currentTab === 'comptabilite') {
+        container.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Comptabilité & Règlements</h1>
+              <p class="text-xs text-slate-400 mt-1">Saisie de règlements, génération de quittance PDF et export CSV.</p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="exportCSV()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-white rounded-lg text-xs font-semibold">
+                📥 Export CSV
+              </button>
+              <button onclick="openAddTx()" class="px-4 py-2 bg-primary-500 text-white rounded-lg text-xs font-semibold">
+                + Saisir Règlement
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden shadow-premium">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/50 border-b border-slate-100 dark:border-slate-800 dark:bg-slate-800/40">
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Libellé / Réf</th>
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Catégorie</th>
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Montant</th>
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Date</th>
+                  <th class="px-5 py-3 text-xs font-bold text-slate-400 uppercase">Justificatif</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
+                ${state.compta.map(tx => `
+                  <tr>
+                    <td class="px-5 py-4 font-bold text-xs text-slate-700 dark:text-slate-300">
+                      ${tx.libelle}
+                      <span class="block text-3xs text-slate-400 font-mono">ID: ${tx.id}</span>
+                    </td>
+                    <td class="px-5 py-4 text-xs text-slate-500 dark:text-slate-400">${tx.categorie}</td>
+                    <td class="px-5 py-4 text-xs font-bold ${tx.type === 'encaissement' ? 'text-success-600' : 'text-danger-600'}">
+                      ${tx.type === 'encaissement' ? '+' : '-'}${tx.montant.toLocaleString()} FCFA
+                    </td>
+                    <td class="px-5 py-4 text-xs text-slate-500 dark:text-slate-400 font-mono">${tx.date}</td>
+                    <td class="px-5 py-4 text-xs">
+                      ${tx.type === 'encaissement' ? `
+                        <button onclick="downloadReceipt('${tx.id}')" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-3xs font-semibold text-slate-700 dark:text-slate-200 rounded-lg">
+                          📄 PDF Quittance
+                        </button>
+                      ` : '-'}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      else if (state.currentTab === 'personnels') {
+        container.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Personnels & Plannings</h1>
+              <p class="text-xs text-slate-400 mt-1">Planning hebdomadaire 7 jours et validations des congés.</p>
+            </div>
+          </div>
+
+          ${state.personnel.map(p => `
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-xl shadow-premium space-y-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-primary-500 text-white rounded-xl flex items-center justify-center font-bold text-sm">GL</div>
+                <div>
+                  <h3 class="text-xs font-bold text-slate-800 dark:text-white">${p.nom}</h3>
+                  <span class="text-3xs text-slate-400">${p.poste}</span>
+                </div>
+              </div>
+
+              <!-- Weekly Schedule Grid -->
+              <div class="space-y-2">
+                <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider">Planning Hebdomadaire Simple</span>
+                <div class="grid grid-cols-7 gap-1 text-center">
+                  ${['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => `
+                    <div class="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-lg">
+                      <span class="text-3xs text-slate-400 block">${day}</span>
+                      <span class="text-3xs font-black block mt-0.5">${day === 'Sam' || day === 'Dim' ? 'Repos' : '9h-17h'}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Leave Requests -->
+              <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-3xs font-bold text-slate-400 uppercase tracking-wider block">Demandes d'Absences</span>
+                  <span class="px-2 py-0.5 rounded-full text-3xs font-semibold bg-success-50 text-success-500">1 validée</span>
+                </div>
+                ${p.absences.map(abs => `
+                  <div class="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-lg flex items-center justify-between">
+                    <div class="text-3xs">
+                      <span class="font-bold block text-slate-700 dark:text-slate-300">${abs.motif}</span>
+                      <span class="text-slate-400">Période : ${abs.date}</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-3xs font-semibold bg-success-100 text-success-600">${abs.statut}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        `;
+      }
+
+      else if (state.currentTab === 'parametres') {
+        container.innerHTML = `
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Paramètres</h1>
+            <p class="text-xs text-slate-400 mt-1">Modèles de courriels, sécurité, SIRET et sauvegardes.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-xl shadow-premium space-y-4">
+              <h3 class="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">Modèle Courriels (Quittances)</h3>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-3xs font-semibold text-slate-400 uppercase mb-1">Objet du courriel</label>
+                  <input type="text" value="Votre quittance de loyer pour [Période]" class="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none text-slate-900 dark:text-slate-100">
+                </div>
+                <div>
+                  <label class="block text-3xs font-semibold text-slate-400 uppercase mb-1">Corps du message</label>
+                  <textarea rows="4" class="w-full p-3 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none text-slate-900 dark:text-slate-100">Bonjour [Locataire],\n\nVeuillez trouver ci-joint votre quittance de loyer pour la période de [Période].\n\nCordialement,\nL'équipe Habitia</textarea>
+                </div>
+                <div class="flex justify-end">
+                  <button onclick="saveMailTemplate()" class="px-4 py-1.5 bg-primary-500 text-white rounded-lg text-xs font-semibold">Enregistrer le modèle</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-xl shadow-premium flex flex-col justify-between">
+              <div>
+                <h3 class="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-2">Base de Données</h3>
+                <p class="text-xs text-slate-400 dark:text-slate-500">Exportez un fichier de sauvegarde au format JSON contenant la configuration et vos transactions.</p>
+              </div>
+                <button onclick="downloadBackup()" class="px-4 py-2 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                  📥 Télécharger l'archive JSON
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      else if (state.currentTab === 'bilan-locataire') {
+        const tenantId = state.selectedTenantId;
+        const tenant = state.locataires.find(t => t.id === tenantId);
+        if (!tenant) {
+          state.currentTab = 'locataires';
+          renderPage();
+          return;
+        }
+
+        const payments = state.tenantPayments[tenantId];
+        
+        let cumulativePaid = 0;
+        let cumulativeLoyer = 0;
+        const rows = payments.map((p, idx) => {
+          cumulativePaid += parseFloat(p.paye) || 0;
+          cumulativeLoyer += parseFloat(p.loyer) || 0;
+          const solde = cumulativePaid - cumulativeLoyer;
+          const reliquat = solde < 0 ? -solde : 0;
+          const avance = solde > 0 ? Math.floor(solde / p.loyer) : 0;
+          const retard = solde < 0 ? Math.floor(-solde / p.loyer) : 0;
+          
+          let statut = 'À jour';
+          if (solde > 0) statut = 'En avance';
+          else if (solde < 0) statut = 'Pas à jour';
+          
+          return {
+            ...p,
+            totalPaye: p.paye,
+            solde,
+            reliquat,
+            avance,
+            retard,
+            statut
+          };
+        });
+
+        const totalPaidAll = payments.reduce((sum, p) => sum + (parseFloat(p.paye) || 0), 0);
+
+        container.innerHTML = `
+          <div class="flex items-center gap-4 mb-4">
+            <button onclick="state.currentTab = 'locataires'; renderPage();" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1">
+              ⬅️ Retour
+            </button>
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Bilan Locataire - Fiche de Paiements</h1>
+              <p class="text-xs text-slate-400 mt-1">Suivi de bail de ${tenant.prenom} ${tenant.nom}</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-4 p-5 bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-xl shadow-premium">
+            <div>
+              <span class="text-3xs font-bold text-slate-450 uppercase tracking-wider block mb-0.5">Locataire</span>
+              <span class="text-xs font-bold text-slate-850 dark:text-white">${tenant.prenom} ${tenant.nom}</span>
+            </div>
+            <div>
+              <span class="text-3xs font-bold text-slate-450 uppercase tracking-wider block mb-0.5">Logement Loué</span>
+              <span class="text-xs font-semibold text-slate-600 dark:text-slate-350 block truncate">${tenant.bien}</span>
+            </div>
+            <div>
+              <span class="text-3xs font-bold text-slate-450 uppercase tracking-wider block mb-0.5">Caution Payée</span>
+              <span class="text-xs font-bold text-primary-500 font-mono block">${(tenant.caution || 0).toLocaleString()} FCFA</span>
+            </div>
+            <div>
+              <span class="text-3xs font-bold text-slate-450 uppercase tracking-wider block mb-0.5">Employeur & Garant</span>
+              <span class="text-xs font-semibold text-slate-650 dark:text-slate-350 block truncate">${tenant.employeur} / ${tenant.garant}</span>
+            </div>
+            <div>
+              <span class="text-3xs font-bold text-slate-450 uppercase tracking-wider block mb-0.5">Statut Global</span>
+              <span class="px-2.5 py-0.5 inline-block rounded-full text-3xs font-bold ${totalPaidAll >= (payments[0].loyer * payments.length) ? 'bg-success-50 text-success-500 border border-success-100' : 'bg-danger-50 text-danger-500 border border-danger-100'}">
+                ${totalPaidAll >= (payments[0].loyer * payments.length) ? 'À jour' : 'Solde Débiteur'}
+              </span>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-xl overflow-hidden shadow-premium">
+            <div class="p-4 border-b border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 flex justify-between items-center">
+              <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Tableau de Bord des Loyers (FCFA)</span>
+              <span class="text-3xs text-slate-400 italic">Modifiez les montants payés directement dans la grille</span>
+            </div>
+            
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs font-sans">
+                <thead>
+                  <tr class="bg-slate-100/50 dark:bg-slate-850 border-b border-slate-150 dark:border-slate-800 text-slate-450 font-bold uppercase text-3xs">
+                    <th class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 w-24">Mois</th>
+                    <th class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-right w-32">Loyer</th>
+                    <th class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-right w-36">Payé ce mois</th>
+                    <th class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-right w-32">Total payé</th>
+                    <th class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-right w-36">Solde</th>
+                    <th class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-right w-32">Reliquat</th>
+                    <th class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-center w-24">Avance(m.)</th>
+                    <th class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-center w-24">Retard(m.)</th>
+                    <th class="px-4 py-3 text-center w-28">Statut</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-150 dark:divide-slate-800/60 font-mono text-slate-700 dark:text-slate-300">
+                  ${rows.map((r, index) => {
+                    const soldeStr = r.solde === 0 ? '- FCFA' : (r.solde < 0 ? `- ${Math.abs(r.solde).toLocaleString()} FCFA` : `+ ${r.solde.toLocaleString()} FCFA`);
+                    const reliquatStr = r.reliquat === 0 ? '- FCFA' : `${r.reliquat.toLocaleString()} FCFA`;
+                    
+                    return `
+                      <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
+                        <td class="px-4 py-2 border-r border-slate-150 dark:border-slate-800 font-sans font-bold text-slate-850 dark:text-slate-200">${r.mois}</td>
+                        <td class="px-4 py-1.5 border-r border-slate-150 dark:border-slate-800 text-right">
+                          <input type="number" value="${r.loyer}" oninput="updateTenantPayment('${tenantId}', ${index}, 'loyer', parseFloat(this.value)||0)" class="w-full px-2 py-1 text-right border border-transparent hover:border-slate-250 dark:hover:border-slate-700 focus:border-primary-500 rounded bg-transparent text-slate-800 dark:text-slate-200 focus:outline-none">
+                        </td>
+                        <td class="px-4 py-1.5 border-r border-slate-150 dark:border-slate-800 text-right bg-primary-50/10 dark:bg-primary-950/5">
+                          <input type="number" value="${r.paye}" oninput="updateTenantPayment('${tenantId}', ${index}, 'paye', parseFloat(this.value)||0)" class="w-full px-2 py-1 text-right border border-primary-150 dark:border-primary-900/40 focus:border-primary-500 rounded bg-white dark:bg-slate-950 font-bold text-slate-900 dark:text-slate-100 focus:outline-none shadow-sm">
+                        </td>
+                        <td class="px-4 py-2 border-r border-slate-150 dark:border-slate-800 text-right text-slate-500">${r.paye > 0 ? `${r.paye.toLocaleString()} FCFA` : '- FCFA'}</td>
+                        <td class="px-4 py-2 border-r border-slate-150 dark:border-slate-800 text-right font-bold ${r.solde < 0 ? 'text-danger-550 dark:text-danger-400' : (r.solde > 0 ? 'text-primary-500 dark:text-primary-400' : 'text-slate-400')}">${soldeStr}</td>
+                        <td class="px-4 py-2 border-r border-slate-150 dark:border-slate-800 text-right font-bold ${r.reliquat > 0 ? 'text-danger-550 dark:text-danger-400' : 'text-slate-400'}">${reliquatStr}</td>
+                        <td class="px-4 py-2 border-r border-slate-150 dark:border-slate-800 text-center font-sans ${r.avance > 0 ? 'font-bold text-success-500' : 'text-slate-450'}">${r.avance}</td>
+                        <td class="px-4 py-2 border-r border-slate-150 dark:border-slate-800 text-center font-sans ${r.retard > 0 ? 'font-bold text-danger-550 dark:text-danger-450' : 'text-slate-450'}">${r.retard}</td>
+                        <td class="px-4 py-2 text-center font-sans">
+                          <span class="px-2.5 py-0.5 inline-block rounded-full text-3xs font-bold ${
+                            r.statut === 'En avance' ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/10' :
+                            r.statut === 'À jour' ? 'bg-success-600 text-white shadow-sm shadow-success-500/10' :
+                            'bg-danger-600 text-white shadow-sm shadow-danger-500/10'
+                          }">
+                            ${r.statut}
+                          </span>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                  
+                  <tr class="bg-slate-50 dark:bg-slate-900/80 font-bold border-t border-slate-200 dark:border-slate-800">
+                    <td class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 font-sans uppercase">TOTAL=</td>
+                    <td class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-right">-</td>
+                    <td class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-right">-</td>
+                    <td class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-right text-slate-850 dark:text-white font-black">${totalPaidAll.toLocaleString()} FCFA</td>
+                    <td class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-right">-</td>
+                    <td class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-right">-</td>
+                    <td class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-center">-</td>
+                    <td class="px-4 py-3 border-r border-slate-150 dark:border-slate-800 text-center">-</td>
+                    <td class="px-4 py-3 text-center">-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }-center">-</td>
+                    <td class="px-4 py-3 text-center">-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Leaflet map renderer
+    let activeMap = null;
+    function initializeMap(coords, popupText) {
+      if (activeMap) {
+        activeMap.remove();
+      }
+      const mapContainer = document.getElementById('leaflet-map');
+      if (mapContainer) {
+        activeMap = L.map('leaflet-map').setView(coords, 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(activeMap);
+        L.marker(coords).addTo(activeMap).bindPopup(`<b>${popupText}</b>`).openPopup();
+      }
+    }
+    function showBienMap(address) {
+      showToast(`Localisation de "${address}" sur la carte...`);
+      // Random coordinates offset around Dakar
+      const lat = 14.7167 + (Math.random() - 0.5) * 0.04;
+      const lng = -17.4677 + (Math.random() - 0.5) * 0.04;
+      initializeMap([lat, lng], address);
+    }
+
+    // Interactive Functions for CRUD
+    // Interactive Functions for CRUD
+    function openAddOwner() {
+      showModal("Ajouter un Propriétaire", `
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <span class="text-3xs font-bold text-slate-450 uppercase tracking-wider block">Informations Personnelles</span>
+            <div class="grid grid-cols-2 gap-4">
+              <input type="text" id="add-o-prenom" placeholder="Prénom" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+              <input type="text" id="add-o-nom" placeholder="Nom" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            </div>
+            <input type="email" id="add-o-email" placeholder="Email" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            <input type="text" id="add-o-tel" placeholder="Téléphone" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            <input type="text" id="add-o-adr" placeholder="Adresse" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            <input type="text" id="add-o-cin" placeholder="CIN / Passeport" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+          </div>
+
+          <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+            <span class="text-3xs font-bold text-slate-450 uppercase tracking-wider block">Rattacher un premier bien (Optionnel)</span>
+            <input type="text" id="add-b-adr" placeholder="Adresse du bien (ex: Immeuble I : appartements)" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            <div class="grid grid-cols-2 gap-4">
+              <input type="text" id="add-b-ville" placeholder="Ville (ex: GOLF)" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+              <select id="add-b-type" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+                <option value="appartement">Appartement</option>
+                <option value="villa">Villa</option>
+                <option value="bureau">Bureau</option>
+                <option value="terrain">Terrain</option>
+              </select>
+            </div>
+            <input type="number" id="add-b-surface" placeholder="Surface (m²)" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2 border-t">
+            <button onclick="closeModal()" class="px-3 py-1.5 text-xs bg-slate-100 rounded-lg dark:bg-slate-800 text-slate-800 dark:text-slate-100">Annuler</button>
+            <button onclick="submitAddOwner()" class="px-3 py-1.5 text-xs bg-primary-500 text-white rounded-lg">Ajouter</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function submitAddOwner() {
+      const nom = document.getElementById('add-o-nom').value;
+      const prenom = document.getElementById('add-o-prenom').value;
+      const email = document.getElementById('add-o-email').value;
+      const telephone = document.getElementById('add-o-tel').value;
+      const adresse = document.getElementById('add-o-adr').value;
+      const cinPasseport = document.getElementById('add-o-cin').value;
+
+      const bienAdresse = document.getElementById('add-b-adr').value;
+      const bienVille = document.getElementById('add-b-ville').value;
+      const bienType = document.getElementById('add-b-type').value;
+      const bienSurface = document.getElementById('add-b-surface').value;
+
+      const ownerId = 'prop-' + (state.proprietaires.length + 1);
+      state.proprietaires.push({
+        id: ownerId,
+        nom,
+        prenom,
+        email,
+        telephone,
+        adresse,
+        cinPasseport,
+        biensCount: bienAdresse ? 1 : 0,
+        docs: []
+      });
+
+      if (bienAdresse) {
+        state.biens.push({
+          id: 'bien-' + (state.biens.length + 1),
+          adresse: bienAdresse,
+          ville: bienVille || 'Dakar',
+          type: bienType,
+          surface: parseFloat(bienSurface) || 100,
+          statut: 'disponible',
+          proprietaire: `${prenom} ${nom}`,
+          charges: [],
+          photo: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&auto=format&fit=crop'
+        });
+      }
+
+      closeModal();
+      renderPage();
+      showToast(`Propriétaire "${prenom} ${nom}" ajouté !`);
+    }
+
+    function deleteOwner(id) {
+      if (confirm("Voulez-vous supprimer ce propriétaire ?")) {
+        state.proprietaires = state.proprietaires.filter(p => p.id !== id);
+        renderPage();
+        showToast("Propriétaire supprimé.");
+      }
+    }
+
+    function autoFillTenantLoyer(adresse) {
+      const b = state.biens.find(x => x.adresse === adresse);
+      if (b) {
+        let rent = b.type === 'villa' ? 1500000 : b.type === 'bureau' ? 800000 : 300000;
+        document.getElementById('add-t-loyer').value = rent;
+        document.getElementById('add-t-caution').value = rent * 2;
+      }
+    }
+
+    function openAddTenant() {
+      // Filter available properties or show occupied as disabled
+      const propertiesOptions = state.biens.map(b => {
+        const isOccupied = b.statut === 'loué';
+        return `<option value="${b.adresse}" ${isOccupied ? 'disabled class="text-slate-400 bg-slate-100"' : ''}>${b.adresse} ${isOccupied ? '(Occupé)' : '(Disponible)'}</option>`;
+      }).join('');
+
+      const startMonthOptions = [
+        'janv-26', 'févr-26', 'mars-26', 'avr-26', 'mai-26', 'juin-26', 'juil-26', 'août-26', 'sept-26', 'oct-26', 'nov-26', 'déc-26',
+        'janv-27', 'févr-27', 'mars-27', 'avr-27', 'mai-27', 'juin-27', 'juil-27', 'août-27', 'sept-27', 'oct-27', 'nov-27', 'déc-27'
+      ].map(m => `<option value="${m}">${m}</option>`).join('');
+
+      showModal("Ajouter un Locataire", `
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <span class="text-3xs font-bold text-slate-450 uppercase tracking-wider block">Informations Locataire</span>
+            <div class="grid grid-cols-2 gap-4">
+              <input type="text" id="add-t-prenom" placeholder="Prénom" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+              <input type="text" id="add-t-nom" placeholder="Nom" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            </div>
+            <input type="email" id="add-t-email" placeholder="Email" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            <input type="text" id="add-t-tel" placeholder="Téléphone" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            <div class="grid grid-cols-2 gap-4">
+              <input type="text" id="add-t-emp" placeholder="Employeur" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+              <input type="text" id="add-t-gar" placeholder="Garant" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+            <span class="text-3xs font-bold text-slate-450 uppercase tracking-wider block">Contrat & Logement</span>
+            <select id="add-t-bien" onchange="autoFillTenantLoyer(this.value)" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+              <option value="">-- Sélectionner un bien --</option>
+              ${propertiesOptions}
+            </select>
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="block text-4xs font-bold text-slate-450 uppercase mb-0.5">Loyer (FCFA)</label>
+                <input type="number" id="add-t-loyer" placeholder="Montant" class="w-full px-2.5 py-1.5 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100 font-mono">
+              </div>
+              <div>
+                <label class="block text-4xs font-bold text-slate-450 uppercase mb-0.5">Caution (FCFA)</label>
+                <input type="number" id="add-t-caution" placeholder="Caution" class="w-full px-2.5 py-1.5 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100 font-mono">
+              </div>
+              <div>
+                <label class="block text-4xs font-bold text-slate-450 uppercase mb-0.5">Mois Début</label>
+                <select id="add-t-debut" class="w-full px-2.5 py-1.5 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+                  ${startMonthOptions}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2 border-t">
+            <button onclick="closeModal()" class="px-3 py-1.5 text-xs bg-slate-100 rounded-lg dark:bg-slate-800 text-slate-800 dark:text-slate-100">Annuler</button>
+            <button onclick="submitAddTenant()" class="px-3 py-1.5 text-xs bg-primary-500 text-white rounded-lg">Ajouter</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function submitAddTenant() {
+      const prenom = document.getElementById('add-t-prenom').value;
+      const nom = document.getElementById('add-t-nom').value;
+      const email = document.getElementById('add-t-email').value;
+      const telephone = document.getElementById('add-t-tel').value;
+      const employeur = document.getElementById('add-t-emp').value;
+      const garant = document.getElementById('add-t-gar').value;
+      const bien = document.getElementById('add-t-bien').value;
+      const debutMois = document.getElementById('add-t-debut').value;
+      const caution = document.getElementById('add-t-caution').value;
+      const loyer = document.getElementById('add-t-loyer').value;
+
+      if (!prenom || !nom) {
+        alert("Le prénom et le nom sont requis.");
+        return;
+      }
+
+      const tenantId = 'loc-' + (state.locataires.length + 1);
+      state.locataires.push({
+        id: tenantId,
+        nom,
+        prenom,
+        email,
+        telephone,
+        employeur: employeur || '-',
+        garant: garant || '-',
+        statut: 'actif',
+        bien: bien || 'Non attribué',
+        debutMois: debutMois || 'mars-26',
+        caution: parseFloat(caution) || 0,
+        loyer: parseFloat(loyer) || 150000
+      });
+
+      if (bien) {
+        const b = state.biens.find(x => x.adresse === bien);
+        if (b) {
+          b.statut = 'loué';
+        }
+      }
+
+      closeModal();
+      renderPage();
+      showToast(`Locataire "${prenom} ${nom}" ajouté.`);
+    }
+
+    function deleteTenant(id) {
+      if (confirm("Voulez-vous supprimer ce locataire ?")) {
+        const tenant = state.locataires.find(t => t.id === id);
+        if (tenant && tenant.bien) {
+          const b = state.biens.find(x => x.adresse === tenant.bien);
+          if (b) {
+            b.statut = 'disponible';
+          }
+        }
+        state.locataires = state.locataires.filter(t => t.id !== id);
+        renderPage();
+        showToast("Locataire supprimé.");
+      }
+    }
+
+    function saveTenantPaymentsToLocal() {
+      try {
+        localStorage.setItem('habitia_tenant_payments_preview', JSON.stringify(state.tenantPayments));
+      } catch (e) {}
+    }
+
+    function loadTenantPaymentsFromLocal() {
+      const saved = localStorage.getItem('habitia_tenant_payments_preview');
+      if (saved) {
+        try {
+          state.tenantPayments = JSON.parse(saved);
+        } catch(e) {
+          state.tenantPayments = {};
+        }
+      } else {
+        state.tenantPayments = {};
+      }
+    }
+
+    function generateMonthsSequence(startMonthStr, count = 13) {
+      const parts = startMonthStr.split('-');
+      const startMonthLabel = parts[0];
+      const startYearVal = parseInt(parts[1]);
+      
+      const frenchMonths = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
+      let monthIdx = frenchMonths.indexOf(startMonthLabel);
+      if (monthIdx === -1) monthIdx = 0;
+      
+      let year = startYearVal;
+      const sequence = [];
+      
+      for (let i = 0; i < count; i++) {
+        sequence.push(`${frenchMonths[monthIdx]}-${year}`);
+        monthIdx++;
+        if (monthIdx >= 12) {
+          monthIdx = 0;
+          year++;
+        }
+      }
+      return sequence;
+    }
+
+    function viewTenantBilan(tenantId) {
+      state.selectedTenantId = tenantId;
+      state.currentTab = 'bilan-locataire';
+      
+      if (!state.tenantPayments) {
+        loadTenantPaymentsFromLocal();
+      }
+      
+      if (!state.tenantPayments[tenantId]) {
+        const tenant = state.locataires.find(t => t.id === tenantId);
+        const startMonth = (tenant && tenant.debutMois) ? tenant.debutMois : 'mars-26';
+        let defaultLoyer = (tenant && tenant.loyer) ? tenant.loyer : 150000;
+        
+        if (tenant && (tenant.prenom.includes('Soumaila') || tenant.nom.includes('Soumaila'))) {
+          defaultLoyer = 25000;
+        }
+        
+        const months = generateMonthsSequence(startMonth, 13);
+        state.tenantPayments[tenantId] = months.map((m, idx) => ({
+          mois: m,
+          loyer: defaultLoyer,
+          paye: idx === 0 ? defaultLoyer : 0
+        }));
+        saveTenantPaymentsToLocal();
+      }
+      renderPage();
+    }
+
+    function updateTenantPayment(tenantId, monthIndex, key, value) {
+      state.tenantPayments[tenantId][monthIndex][key] = value;
+      saveTenantPaymentsToLocal();
+      renderPage();
+    }
+
+    function openAddBien() {
+      const ownersOptions = state.proprietaires.map(p => 
+        `<option value="${p.prenom} ${p.nom}">${p.prenom} ${p.nom}</option>`
+      ).join('');
+
+      showModal("Ajouter un Bien Immobilier", `
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <span class="text-3xs font-bold text-slate-450 uppercase tracking-wider block">Détails du Bien</span>
+            <input type="text" id="add-b-adresse" placeholder="Adresse complète" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            <input type="text" id="add-b-ville-val" placeholder="Ville" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            <div class="grid grid-cols-2 gap-4">
+              <select id="add-b-type-val" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+                <option value="appartement">Appartement</option>
+                <option value="villa">Villa</option>
+                <option value="bureau">Bureau</option>
+                <option value="terrain">Terrain</option>
+              </select>
+              <input type="number" id="add-b-surface-val" placeholder="Surface (m²)" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+            <span class="text-3xs font-bold text-slate-450 uppercase tracking-wider block">Propriétaire Mandant</span>
+            <select id="add-b-owner-val" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+              <option value="">-- Sélectionner un propriétaire --</option>
+              ${ownersOptions}
+            </select>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2 border-t">
+            <button onclick="closeModal()" class="px-3 py-1.5 text-xs bg-slate-100 rounded-lg dark:bg-slate-800 text-slate-800 dark:text-slate-100">Annuler</button>
+            <button onclick="submitAddBien()" class="px-3 py-1.5 text-xs bg-primary-500 text-white rounded-lg">Ajouter</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function submitAddBien() {
+      const adresse = document.getElementById('add-b-adresse').value;
+      const ville = document.getElementById('add-b-ville-val').value;
+      const type = document.getElementById('add-b-type-val').value;
+      const surface = document.getElementById('add-b-surface-val').value;
+      const owner = document.getElementById('add-b-owner-val').value;
+
+      if (!adresse || !owner) {
+        alert("L'adresse et le propriétaire sont requis.");
+        return;
+      }
+
+      state.biens.push({
+        id: 'bien-' + (state.biens.length + 1),
+        adresse,
+        ville: ville || 'Dakar',
+        type,
+        surface: parseFloat(surface) || 100,
+        statut: 'disponible',
+        proprietaire: owner,
+        charges: [],
+        photo: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&auto=format&fit=crop'
+      });
+
+      const p = state.proprietaires.find(x => `${x.prenom} ${x.nom}` === owner);
+      if (p) {
+        p.biensCount = (p.biensCount || 0) + 1;
+      }
+
+      closeModal();
+      renderPage();
+      showToast(`Bien immobilier "${adresse}" ajouté.`);
+    }
+
+    function openAddTx() {
+      showModal("Saisir un Règlement", `
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <span class="text-3xs font-bold text-slate-450 uppercase tracking-wider block">Détails de la Transaction</span>
+            <input type="text" id="add-tx-libelle" placeholder="Libellé (ex: Loyer Juin - Ibrahima Kaba)" class="w-full px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            <div class="grid grid-cols-2 gap-4">
+              <select id="add-tx-type" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+                <option value="encaissement">Encaissement (+) </option>
+                <option value="décaissement">Décaissement (-)</option>
+              </select>
+              <input type="number" id="add-tx-montant" placeholder="Montant (FCFA)" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <select id="add-tx-cat" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+                <option value="Loyer">Loyer</option>
+                <option value="Caution">Caution</option>
+                <option value="Frais de Gérance">Frais de Gérance</option>
+                <option value="Travaux">Travaux</option>
+                <option value="Autre">Autre</option>
+              </select>
+              <input type="date" id="add-tx-date" class="px-3 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 focus:outline-none text-slate-900 dark:text-slate-100">
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2 border-t">
+            <button onclick="closeModal()" class="px-3 py-1.5 text-xs bg-slate-100 rounded-lg dark:bg-slate-800 text-slate-800 dark:text-slate-100">Annuler</button>
+            <button onclick="submitAddTx()" class="px-3 py-1.5 text-xs bg-primary-500 text-white rounded-lg">Enregistrer</button>
+          </div>
+        </div>
+      `);
+      document.getElementById('add-tx-date').value = new Date().toISOString().split('T')[0];
+    }
+
+    function submitAddTx() {
+      const libelle = document.getElementById('add-tx-libelle').value;
+      const type = document.getElementById('add-tx-type').value;
+      const montant = document.getElementById('add-tx-montant').value;
+      const categorie = document.getElementById('add-tx-cat').value;
+      const date = document.getElementById('add-tx-date').value;
+
+      if (!libelle || !montant) {
+        alert("Le libellé et le montant sont requis.");
+        return;
+      }
+
+      state.compta.push({
+        id: (type === 'encaissement' ? 'pay-' : 'exp-') + (state.compta.length + 1),
+        type,
+        categorie,
+        montant: parseFloat(montant) || 0,
+        date: date || new Date().toISOString().split('T')[0],
+        libelle
+      });
+
+      closeModal();
+      renderPage();
+      showToast(`Transaction "${libelle}" enregistrée.`);
+    }
+
+    function selectOwner(id) {
+      state.selectedOwnerId = id;
+      state.ownerSubTab = 'info';
+      // Load or initialize withdraw data if not present
+      if (!state.withdrawData) {
+        state.withdrawData = {};
+      }
+      if (!state.withdrawData[id]) {
+        const p = state.proprietaires.find(x => x.id === id);
+        const pBiens = state.biens.filter(b => b.proprietaire === `${p.prenom} ${p.nom}`);
+        const lines = [];
+        pBiens.forEach(b => {
+          // find tenants in this property
+          const bTenants = state.locataires.filter(l => l.bien === b.adresse);
+          bTenants.forEach(t => {
+            lines.push({
+              locataireName: `${t.prenom} ${t.nom}`,
+              loyerMensuel: b.type === 'villa' ? 1500000 : b.type === 'bureau' ? 800000 : 300000,
+              moisActuel: "juin-26",
+              montantPaye: b.type === 'villa' ? 1500000 : b.type === 'bureau' ? 800000 : 300000,
+              reliquat: 0,
+              statut: "À jour"
+            });
+          });
+        });
+        if (id === 'prop-1' && lines.length === 0) {
+          // standard mockup values for Cheikh Ndiaye
+          lines.push(
+            { locataireName: "Mr Soumaila", loyerMensuel: 25000, moisActuel: "janv-26", montantPaye: 25000, reliquat: 0, statut: "En avance" },
+            { locataireName: "Mr Mohamed Mouktar Salem", loyerMensuel: 150000, moisActuel: "janv-26", montantPaye: 125000, reliquat: 25000, statut: "À jour" },
+            { locataireName: "Mr Diarra", loyerMensuel: 150000, moisActuel: "janv-26", montantPaye: 100000, reliquat: 50000, statut: "En retard" }
+          );
+        }
+        state.withdrawData[id] = {
+          companyInfo: "LA SOCIETE IMMOBILIERE HAMET SEMEGA\nvde Nioro du Sahel et Associés SARL\nSise à Baco-djicoroni Golf Non loin de L'Hôtel MICASA\nTél : (+223) 78-26-60-09 / 65-10-81-44\nNuméro d'identification fiscale N° 085145669 E.",
+          logoUrl: "https://i.ibb.co/L5VbXhC/hamet-logo.png",
+          date: new Date().toLocaleDateString('fr-FR'),
+          title: "RETRAIT DE LOYER",
+          ownerText: `Monsieur ${p.prenom} ${p.nom}, propriétaire d'un immeuble sis au ${pBiens[0] ? pBiens[0].ville : 'GOLF'} (${pBiens[0] ? pBiens[0].adresse : 'Immeuble I : appartements et magasin'})`,
+          subText: "Nous vous informons que nous débitons votre compte des opérations suivantes :",
+          fraisRate: 10,
+          gerantName: "Mr Amadou Semega",
+          beneficiaireName: `${p.prenom} ${p.nom}`,
+          lines: lines
+        };
+        saveWithdrawDataToLocal();
+      }
+      renderPage();
+    }
+
+    function goBackToOwnersList() {
+      state.selectedOwnerId = null;
+      renderPage();
+    }
+
+    function changeOwnerSubTab(subTabId) {
+      state.ownerSubTab = subTabId;
+      renderOwnerSubTabContent();
+      
+      // Update active style on subtabs
+      const tabs = ['info', 'biens', 'locataires', 'retrait', 'fonds'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`subtab-${t}`);
+        if (btn) {
+          if (t === subTabId) {
+            btn.classList.add('border-b-2', 'border-primary-500', 'text-primary-500');
+            btn.classList.remove('text-slate-450', 'dark:text-slate-500');
+          } else {
+            btn.classList.remove('border-b-2', 'border-primary-500', 'text-primary-500');
+            btn.classList.add('text-slate-450', 'dark:text-slate-500');
+          }
+        }
+      });
+    }
+
+    function renderOwnerDetail() {
+      const container = document.getElementById('main-content');
+      const owner = state.proprietaires.find(p => p.id === state.selectedOwnerId);
+      if (!owner) return;
+
+      container.innerHTML = `
+        <div class="flex items-center justify-between">
+          <button onclick="goBackToOwnersList()" class="px-4 py-2 border border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all">
+            ⬅️ Retour à la liste
+          </button>
+          <div class="text-right">
+            <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">${owner.prenom} ${owner.nom}</h1>
+            <p class="text-xs text-primary-500 mt-1 uppercase tracking-wider font-bold">Fiche Propriétaire</p>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-xl shadow-premium space-y-6">
+          <!-- Tabs Navigation -->
+          <div class="flex border-b border-slate-150 dark:border-slate-850 gap-4 text-xs">
+            <button onclick="changeOwnerSubTab('info')" id="subtab-info" class="pb-2.5 font-bold border-b-2 border-primary-500 text-primary-500 transition-all focus:outline-none">
+              👤 Informations
+            </button>
+            <button onclick="changeOwnerSubTab('biens')" id="subtab-biens" class="pb-2.5 font-bold text-slate-450 transition-all focus:outline-none">
+              🏠 Biens possédés
+            </button>
+            <button onclick="changeOwnerSubTab('locataires')" id="subtab-locataires" class="pb-2.5 font-bold text-slate-450 transition-all focus:outline-none">
+              👥 Locataires logés
+            </button>
+            <button onclick="changeOwnerSubTab('retrait')" id="subtab-retrait" class="pb-2.5 font-bold text-slate-450 transition-all focus:outline-none">
+              📊 Retrait de Loyer
+            </button>
+            <button onclick="changeOwnerSubTab('fonds')" id="subtab-fonds" class="pb-2.5 font-bold text-slate-450 transition-all focus:outline-none">
+              💰 Bilan Financier
+            </button>
+          </div>
+
+          <!-- Tab Content Wrapper -->
+          <div id="owner-subtab-content" class="min-h-[300px]">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      `;
+      renderOwnerSubTabContent();
+    }
+
+    function renderOwnerSubTabContent() {
+      const subtabContainer = document.getElementById('owner-subtab-content');
+      if (!subtabContainer) return;
+      const owner = state.proprietaires.find(p => p.id === state.selectedOwnerId);
+      if (!owner) return;
+
+      if (state.ownerSubTab === 'info') {
+        subtabContainer.innerHTML = `
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
+            <!-- Edit form -->
+            <div class="space-y-4">
+              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Modifier les détails</h3>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-3xs font-semibold text-slate-450 uppercase mb-1">Prénom</label>
+                  <input type="text" id="edit-owner-prenom" value="${owner.prenom}" class="w-full px-3.5 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-primary-500">
+                </div>
+                <div>
+                  <label class="block text-3xs font-semibold text-slate-450 uppercase mb-1">Nom</label>
+                  <input type="text" id="edit-owner-nom" value="${owner.nom}" class="w-full px-3.5 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-primary-500">
+                </div>
+              </div>
+              <div>
+                <label class="block text-3xs font-semibold text-slate-450 uppercase mb-1">Email</label>
+                <input type="email" id="edit-owner-email" value="${owner.email}" class="w-full px-3.5 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-primary-500">
+              </div>
+              <div>
+                <label class="block text-3xs font-semibold text-slate-450 uppercase mb-1">Téléphone</label>
+                <input type="text" id="edit-owner-telephone" value="${owner.telephone}" class="w-full px-3.5 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-primary-500 font-mono">
+              </div>
+              <div>
+                <label class="block text-3xs font-semibold text-slate-450 uppercase mb-1">Adresse</label>
+                <input type="text" id="edit-owner-adresse" value="${owner.adresse}" class="w-full px-3.5 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-primary-500">
+              </div>
+              <div>
+                <label class="block text-3xs font-semibold text-slate-450 uppercase mb-1">CIN / Passeport</label>
+                <input type="text" id="edit-owner-cin" value="${owner.cinPasseport}" class="w-full px-3.5 py-2 text-xs border rounded-lg bg-slate-50 dark:bg-slate-950 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-primary-500">
+              </div>
+              <button onclick="saveOwnerInfo()" class="px-4 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-lg text-xs font-semibold shadow-md active:scale-95 transition-all">
+                💾 Sauvegarder les modifications
+              </button>
+            </div>
+
+            <!-- Docs list -->
+            <div class="space-y-4">
+              <div class="flex justify-between items-center">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Documents Mandats & Identité</h3>
+                <button onclick="uploadOwnerDoc()" class="px-3 py-1 bg-slate-100 hover:bg-slate-250 dark:bg-slate-850 dark:hover:bg-slate-800 text-[10px] font-bold border rounded-lg transition-colors">
+                  📎 Rattacher un fichier
+                </button>
+              </div>
+              <div class="space-y-2">
+                ${owner.docs && owner.docs.length > 0 
+                  ? owner.docs.map(doc => `
+                      <div class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl">
+                        <div class="flex items-center gap-2 text-xs font-bold">
+                          <span>📄</span>
+                          <span>${doc}</span>
+                        </div>
+                        <button onclick="deleteOwnerDoc('${doc}')" class="text-danger-500 font-bold hover:underline text-xs">Retirer</button>
+                      </div>
+                    `).join('')
+                  : `<div class="p-6 text-center border border-dashed rounded-xl text-slate-400 text-xs">Aucun document téléversé.</div>`
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      else if (state.ownerSubTab === 'biens') {
+        const ownerFullName = `${owner.prenom} ${owner.nom}`;
+        const pBiens = state.biens.filter(b => b.proprietaire === ownerFullName || b.proprietaire === 'Cheikh Ndiaye' && owner.id === 'prop-1');
+
+        subtabContainer.innerHTML = `
+          <div class="space-y-4">
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Biens gérés pour ce bailleur</h3>
+              <button onclick="alert('Fonctionnalité Ajouter un bien en cours...')" class="px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-600 border border-primary-200 dark:border-primary-900 rounded-lg text-[10px] font-bold flex items-center gap-1.5 hover:bg-primary-100 transition-colors">
+                <span class="text-lg leading-none">+</span> Ajouter un bien
+              </button>
+            </div>
+            ${pBiens.length > 0 
+              ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  ${pBiens.map(b => `
+                    <div class="bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between relative group">
+                      <div class="h-32 bg-slate-200">
+                        <img src="${b.photo}" class="w-full h-full object-cover" />
+                      </div>
+                      <button onclick="alert('Supprimer ce bien ?')" class="absolute top-2 right-2 p-1.5 bg-white/80 dark:bg-slate-900/80 hover:bg-red-100 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+                        🗑️
+                      </button>
+                      <div class="p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                          <span class="px-2 py-0.5 rounded-full text-3xs font-semibold bg-primary-50 text-primary-500 uppercase">${b.type}</span>
+                          <span class="px-2 py-0.5 rounded-full text-3xs font-semibold bg-success-50 text-success-500 uppercase">${b.statut}</span>
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-800 dark:text-white">${b.adresse}</h4>
+                        <p class="text-3xs text-slate-400">${b.ville} • ${b.surface} m²</p>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>`
+              : `<div class="p-12 text-center border border-dashed rounded-xl text-slate-400 text-xs">Aucun bien rattaché à ce propriétaire.</div>`
+            }
+          </div>
+        `;
+      }
+      
+      else if (state.ownerSubTab === 'locataires') {
+        const ownerFullName = `${owner.prenom} ${owner.nom}`;
+        const pBiens = state.biens.filter(b => b.proprietaire === ownerFullName || b.proprietaire === 'Cheikh Ndiaye' && owner.id === 'prop-1');
+        const pBiensAddresses = pBiens.map(b => b.adresse);
+        const pLocataires = state.locataires.filter(l => pBiensAddresses.includes(l.bien) || (owner.id === 'prop-1' && (l.id === 'loc-1' || l.id === 'loc-2')));
+
+        subtabContainer.innerHTML = `
+          <div class="space-y-4">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Locataires en cours de bail</h3>
+            ${pLocataires.length > 0 
+              ? `<div class="bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                  <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr class="bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
+                        <th class="px-5 py-3 font-bold text-slate-400 uppercase">Locataire</th>
+                        <th class="px-5 py-3 font-bold text-slate-400 uppercase">Bien loué</th>
+                        <th class="px-5 py-3 font-bold text-slate-400 uppercase">Téléphone</th>
+                        <th class="px-5 py-3 font-bold text-slate-400 uppercase">Employeur/Garant</th>
+                        <th class="px-5 py-3 font-bold text-slate-400 uppercase">Statut</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                      ${pLocataires.map(l => `
+                        <tr class="hover:bg-slate-50/40 dark:hover:bg-slate-800/10">
+                          <td class="px-5 py-3.5 font-bold text-xs text-primary-500 hover:underline cursor-pointer" onclick="viewTenantBilan('${l.id}')">${l.prenom} ${l.nom}</td>
+                          <td class="px-5 py-3.5 text-slate-500">${l.bien}</td>
+                          <td class="px-5 py-3.5 text-slate-500 font-mono">${l.telephone}</td>
+                          <td class="px-5 py-3.5 text-slate-500">${l.employeur} / ${l.garant}</td>
+                          <td class="px-5 py-3.5">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-success-50 text-success-500 border border-success-100">${l.statut}</span>
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>`
+              : `<div class="p-12 text-center border border-dashed rounded-xl text-slate-400 text-xs font-semibold">Aucun locataire hébergé.</div>`
+            }
+          </div>
+        `;
+      }
+      
+      else if (state.ownerSubTab === 'retrait') {
+        renderWithdrawTab();
+      }
+      
+      else if (state.ownerSubTab === 'fonds') {
+        const ownerId = state.selectedOwnerId;
+        const w = state.withdrawData ? state.withdrawData[ownerId] : null;
+        if (!w) {
+          subtabContainer.innerHTML = `<div class="p-12 text-center border border-dashed rounded-xl text-slate-400 text-xs font-semibold">
+            Veuillez d'abord initialiser l'onglet "Retrait de Loyer" pour visualiser le bilan.
+          </div>`;
+          return;
+        }
+
+        let totalPaye = 0;
+        w.lines.forEach(l => {
+          totalPaye += parseFloat(l.montantPaye) || 0;
+        });
+        const managementFees = Math.round(totalPaye * (w.fraisRate / 100));
+        const netAmount = totalPaye - managementFees;
+        const withdrawals = w.withdrawals || [];
+        const withdrawnAmount = withdrawals.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+        const remainingBalance = netAmount - withdrawnAmount;
+
+        let historyRowsHtml = '';
+        if (withdrawals.length > 0) {
+          historyRowsHtml = withdrawals.map(item => `
+            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
+              <td class="px-5 py-3.5 text-slate-500 font-mono text-xs">
+                ${new Date(item.date).toLocaleDateString('fr-FR')}
+              </td>
+              <td class="px-5 py-3.5 font-semibold text-slate-700 dark:text-slate-300 text-xs">
+                ${item.motif}
+              </td>
+              <td class="px-5 py-3.5 font-bold font-mono text-danger-500 text-xs">
+                ${parseFloat(item.amount).toLocaleString()} FCFA
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          historyRowsHtml = `
+            <tr>
+              <td colspan="3" class="px-5 py-6 text-center text-xs text-slate-400 italic">
+                Aucun retrait n'a été enregistré pour le moment.
+              </td>
+            </tr>
+          `;
+        }
+
+        subtabContainer.innerHTML = `
+          <div class="space-y-6">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Bilan Financier & Fonds Collectés</h3>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-5">
+              <div class="p-6 border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 rounded-xl shadow-sm">
+                <span class="text-xs font-bold text-slate-500 block mb-1">Total Brut Collecté</span>
+                <span class="text-2xl font-black text-slate-800 dark:text-white">${totalPaye.toLocaleString()} FCFA</span>
+              </div>
+              <div class="p-6 border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 rounded-xl shadow-sm">
+                <span class="text-xs font-bold text-slate-500 block mb-1">Frais de Gérance (${w.fraisRate}%)</span>
+                <span class="text-2xl font-black text-slate-800 dark:text-white">${managementFees.toLocaleString()} FCFA</span>
+              </div>
+              <div class="p-6 border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 rounded-xl shadow-sm">
+                <span class="text-xs font-bold text-slate-500 block mb-1">Fonds Déjà Retirés</span>
+                <span class="text-2xl font-black text-slate-800 dark:text-white">${withdrawnAmount.toLocaleString()} FCFA</span>
+              </div>
+              <div class="p-6 border border-primary-200 dark:border-primary-900 bg-primary-50 dark:bg-primary-900/20 rounded-xl shadow-sm">
+                <span class="text-xs font-bold text-primary-600 dark:text-primary-400 block mb-1">Solde Net Disponible</span>
+                <span class="text-2xl font-black text-primary-700 dark:text-primary-300">${remainingBalance.toLocaleString()} FCFA</span>
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+              <button onclick="openWithdrawalModal('${ownerId}', ${remainingBalance})" class="bg-success-600 hover:bg-success-700 text-white flex items-center gap-2 py-4 px-8 text-sm font-bold rounded-xl shadow-xl shadow-success-500/20 transition-transform active:scale-95">
+                💰 Retirer les fonds disponibles
+              </button>
+            </div>
+
+            <!-- Historique des retraits -->
+            <div class="space-y-3 pt-4 border-t border-slate-150 dark:border-slate-850">
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Historique des retraits effectués
+              </h4>
+              <div class="bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                <table class="w-full text-left border-collapse border-b">
+                  <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold uppercase text-[10px]">
+                      <th class="px-5 py-3 w-1/3">Date</th>
+                      <th class="px-5 py-3 w-1/3">Motif</th>
+                      <th class="px-5 py-3 w-1/3">Montant Retiré</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    ${historyRowsHtml}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function renderWithdrawTab() {
+      const subtabContainer = document.getElementById('owner-subtab-content');
+      if (!subtabContainer) return;
+      const ownerId = state.selectedOwnerId;
+      const w = state.withdrawData[ownerId];
+      if (!w) return;
+
+      // Calculate totals dynamically
+      let totalPaye = 0;
+      let totalReliquats = 0;
+      w.lines.forEach(l => {
+        totalPaye += parseFloat(l.montantPaye) || 0;
+        totalReliquats += (parseFloat(l.loyerMensuel) || 0) - (parseFloat(l.montantPaye) || 0);
+      });
+      const managementFees = Math.round(totalPaye * (w.fraisRate / 100));
+      const netAmount = totalPaye - managementFees;
+
+      subtabContainer.innerHTML = `
+        <div class="space-y-4">
+          <!-- Top Control Panel -->
+          <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-850">
+            <div class="flex items-center gap-3 text-xs">
+              <span class="font-bold text-slate-500 uppercase tracking-wider block">Frais de gérance (%) :</span>
+              <input type="number" value="${w.fraisRate}" oninput="updateWithdrawField('fraisRate', parseFloat(this.value)||0)" class="w-14 px-2 py-1 text-center border rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-bold focus:border-primary-500 focus:outline-none">
+            </div>
+            <div class="flex gap-2">
+              <button onclick="printInvoice()" class="px-4 py-2 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-primary-500/10 transition-all active:scale-95">
+                🖨️ Imprimer / Sauvegarder PDF
+              </button>
+            </div>
+          </div>
+
+          <!-- SPREADSHEET SHEET MODEL -->
+          <div id="hamet-invoice" class="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-xl p-6 text-slate-900 dark:text-slate-100 shadow-inner overflow-x-auto">
+            <div class="min-w-[750px] space-y-4">
+              <!-- Top Header Block: Left Company Info Area & Right Logo Area -->
+              <div class="flex justify-between items-start gap-4">
+                
+                <!-- Left Editable Textbox -->
+                <div class="flex-1 max-w-[320px]">
+                  <label class="block text-[8px] font-bold text-slate-400 uppercase mb-0.5">Informations Agence (Modifiable)</label>
+                  <textarea oninput="updateWithdrawField('companyInfo', this.value)" class="w-full text-[10px] leading-tight border border-slate-250 dark:border-slate-700 p-2 font-mono bg-slate-50/50 dark:bg-slate-800 focus:outline-none focus:border-primary-500 rounded-lg text-slate-800 dark:text-slate-200" rows="5">${w.companyInfo}</textarea>
+                </div>
+
+                <!-- Right Logo Box (Click to upload / replace) -->
+                <div class="flex flex-col items-center">
+                  <span class="block text-[8px] font-bold text-slate-400 uppercase mb-0.5 text-right w-full">Logo (Cliquez pour changer)</span>
+                  <div onclick="document.getElementById('withdraw-logo-file').click()" class="cursor-pointer border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center gap-2 min-w-[120px] max-w-[250px] hover:border-primary-500 transition-colors">
+                    <img id="withdraw-logo-preview" src="${w.logoUrl || 'https://i.ibb.co/L5VbXhC/hamet-logo.png'}" class="max-h-20 object-contain" />
+                  </div>
+                  <input type="file" id="withdraw-logo-file" class="hidden" onchange="uploadWithdrawLogoFile(this)">
+                </div>
+
+              </div>
+
+              <!-- Title and Date Line -->
+              <div class="flex justify-between items-center border-y border-slate-350 dark:border-slate-750 py-2 my-2 text-[11px] font-semibold text-slate-800 dark:text-slate-200">
+                <div class="flex items-center gap-2">
+                  <span class="text-slate-400">Objet :</span>
+                  <input type="text" value="${w.title}" oninput="updateWithdrawField('title', this.value)" class="font-extrabold uppercase border-b border-transparent hover:border-slate-300 focus:border-primary-500 bg-transparent px-1 focus:outline-none">
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span>Bamako le :</span>
+                  <input type="text" value="${w.date}" oninput="updateWithdrawField('date', this.value)" class="font-bold border-b border-transparent hover:border-slate-300 focus:border-primary-500 bg-transparent px-1 focus:outline-none w-28 text-right">
+                </div>
+              </div>
+
+              <!-- Owner and Property Description Statement -->
+              <div class="text-[11px] font-semibold space-y-2 text-slate-850 dark:text-slate-200">
+                <div class="flex items-center gap-1.5">
+                  <span class="shrink-0">Description Propriétaire/Immeuble :</span>
+                  <input type="text" value="${w.ownerText}" oninput="updateWithdrawField('ownerText', this.value)" class="w-full border-b border-transparent hover:border-slate-300 focus:border-primary-500 bg-transparent py-0.5 focus:outline-none font-bold underline">
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="shrink-0">Texte introductif :</span>
+                  <input type="text" value="${w.subText}" oninput="updateWithdrawField('subText', this.value)" class="w-full border-b border-transparent hover:border-slate-300 focus:border-primary-500 bg-transparent py-0.5 focus:outline-none text-slate-500">
+                </div>
+              </div>
+
+              <!-- Editable Table Grid -->
+              <table class="w-full text-left border-collapse border border-slate-300 dark:border-slate-700 text-[10px] leading-tight">
+                <thead>
+                  <tr class="bg-primary-600 text-white font-bold border-b border-slate-300">
+                    <th class="p-2 border-r border-slate-300">Locataires</th>
+                    <th class="p-2 border-r border-slate-300 w-28 text-right">Loyer Mensuel</th>
+                    <th class="p-2 border-r border-slate-300 w-24 text-center">Mois Actuel</th>
+                    <th class="p-2 border-r border-slate-300 w-28 text-right">Montant payé</th>
+                    <th class="p-2 border-r border-slate-300 w-28 text-right">Reliquats</th>
+                    <th class="p-2 w-28 text-center">Statut</th>
+                    <th class="p-1.5 text-center w-10">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                  ${w.lines.map((l, index) => {
+                    const reliquat = (parseFloat(l.loyerMensuel) || 0) - (parseFloat(l.montantPaye) || 0);
+                    return `
+                      <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/10">
+                        <td class="p-1 border-r border-slate-200 dark:border-slate-800">
+                          <input type="text" value="${l.locataireName}" oninput="updateWithdrawLine(${index}, 'locataireName', this.value)" class="w-full p-1 border border-transparent hover:border-slate-300 focus:border-primary-500 focus:outline-none rounded bg-transparent font-bold text-slate-800 dark:text-slate-200">
+                        </td>
+                        <td class="p-1 border-r border-slate-200 dark:border-slate-800">
+                          <input type="number" value="${l.loyerMensuel}" oninput="updateWithdrawLine(${index}, 'loyerMensuel', parseFloat(this.value)||0)" class="w-full p-1 border border-transparent hover:border-slate-300 focus:border-primary-500 focus:outline-none rounded bg-transparent font-mono text-right text-slate-850 dark:text-slate-255">
+                        </td>
+                        <td class="p-1 border-r border-slate-200 dark:border-slate-800">
+                          <input type="text" value="${l.moisActuel}" oninput="updateWithdrawLine(${index}, 'moisActuel', this.value)" class="w-full p-1 border border-transparent hover:border-slate-300 focus:border-primary-500 focus:outline-none rounded bg-transparent text-center text-slate-850 dark:text-slate-255">
+                        </td>
+                        <td class="p-1 border-r border-slate-200 dark:border-slate-800">
+                          <input type="number" value="${l.montantPaye}" oninput="updateWithdrawLine(${index}, 'montantPaye', parseFloat(this.value)||0)" class="w-full p-1 border border-transparent hover:border-slate-300 focus:border-primary-500 focus:outline-none rounded bg-transparent font-mono text-right font-bold text-slate-850 dark:text-slate-255">
+                        </td>
+                        <td class="p-1.5 border-r border-slate-200 dark:border-slate-800 text-right font-mono font-bold text-slate-800 dark:text-slate-200">
+                          ${reliquat > 0 ? `<span class="text-danger-550">${reliquat.toLocaleString()} FCFA</span>` : `<span class="text-slate-400">- FCFA</span>`}
+                        </td>
+                        <td class="p-1 border-r border-slate-200 dark:border-slate-800 text-center">
+                          <select onchange="updateWithdrawLine(${index}, 'statut', this.value)" class="w-full p-0.5 border border-transparent hover:border-slate-300 focus:outline-none rounded font-bold text-center text-[9px]" style="${
+                            l.statut === 'En avance' ? 'background:#10b981;color:white;' :
+                            l.statut === 'À jour' ? 'background:#eab308;color:white;' :
+                            'background:#ef4444;color:white;'
+                          }">
+                            <option value="En avance" ${l.statut === 'En avance' ? 'selected' : ''}>En avance</option>
+                            <option value="À jour" ${l.statut === 'À jour' ? 'selected' : ''}>À jour</option>
+                            <option value="En retard" ${l.statut === 'En retard' ? 'selected' : ''}>En retard</option>
+                          </select>
+                        </td>
+                        <td class="p-1 text-center">
+                          <button onclick="deleteWithdrawLine(${index})" class="text-danger-500 hover:text-danger-600 font-bold hover:scale-110 transition-transform">✕</button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+
+              <!-- Add Row Trigger Button -->
+              <div class="flex justify-start">
+                <button onclick="addWithdrawLine()" class="px-4 py-1.5 border border-dashed border-primary-500 hover:bg-primary-500/5 text-primary-500 text-xs font-bold rounded-lg transition-colors flex items-center gap-1">
+                  <span>+</span> Ajouter un locataire / Ligne de loyer
+                </button>
+              </div>
+
+              <!-- Calculation Block (Total, Frais, Reliquats, Net) -->
+              <div class="flex justify-start pt-3">
+                <div class="w-[260px] text-[11px] space-y-1.5 border border-slate-350 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl leading-relaxed">
+                  <div class="flex justify-between">
+                    <span class="font-bold text-slate-500">TOTAL COLLECTÉ :</span>
+                    <span class="font-black text-slate-800 dark:text-white">${totalPaye.toLocaleString()} FCFA</span>
+                  </div>
+                  <div class="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-1">
+                    <span class="font-bold text-slate-500">Frais de gérance (${w.fraisRate}%) :</span>
+                    <span class="font-black text-slate-800 dark:text-white">${managementFees.toLocaleString()} FCFA</span>
+                  </div>
+                  <div class="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-1">
+                    <span class="font-bold text-slate-500">Reliquats restants :</span>
+                    <span class="font-black text-danger-500">${totalReliquats.toLocaleString()} FCFA</span>
+                  </div>
+                  <div class="flex justify-between border-t border-slate-300 dark:border-slate-700 pt-1.5 font-bold text-primary-500 text-xs">
+                    <span>NET À REVERSER :</span>
+                    <span class="font-black">${netAmount.toLocaleString()} FCFA</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Signature Names inputs -->
+              <div class="grid grid-cols-2 text-center text-[10px] pt-6 mt-6 border-t border-dashed border-slate-300 dark:border-slate-750">
+                <div class="space-y-8">
+                  <div>
+                    <span class="font-black block uppercase text-slate-400 tracking-wider">Le Bénéficiaire</span>
+                    <span class="text-[8px] text-slate-400 block font-normal">(Signature et nom ci-dessous)</span>
+                  </div>
+                  <input type="text" value="${w.beneficiaireName}" oninput="updateWithdrawField('beneficiaireName', this.value)" class="w-48 text-center font-bold underline border-b border-transparent hover:border-slate-300 focus:border-primary-500 bg-transparent px-1 focus:outline-none mx-auto block text-slate-800 dark:text-slate-200">
+                </div>
+                <div class="space-y-8">
+                  <div>
+                    <span class="font-black block uppercase text-slate-400 tracking-wider">Le Gérant</span>
+                    <span class="text-[8px] text-slate-400 block font-normal">(Signature et nom ci-dessous)</span>
+                  </div>
+                  <input type="text" value="${w.gerantName}" oninput="updateWithdrawField('gerantName', this.value)" class="w-48 text-center font-bold underline border-b border-transparent hover:border-slate-300 focus:border-primary-500 bg-transparent px-1 focus:outline-none mx-auto block text-slate-800 dark:text-slate-200">
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      `;
+    }
+
+
+    function updateWithdrawField(fieldName, value) {
+      const ownerId = state.selectedOwnerId;
+      if (state.withdrawData && state.withdrawData[ownerId]) {
+        state.withdrawData[ownerId][fieldName] = value;
+        saveWithdrawDataToLocal();
+        if (fieldName === 'fraisRate') {
+          renderWithdrawTab();
+        }
+      }
+    }
+
+    function updateWithdrawLine(index, key, value) {
+      const ownerId = state.selectedOwnerId;
+      if (state.withdrawData && state.withdrawData[ownerId]) {
+        state.withdrawData[ownerId].lines[index][key] = value;
+        saveWithdrawDataToLocal();
+        if (key === 'loyerMensuel' || key === 'montantPaye') {
+          renderWithdrawTab();
+        }
+      }
+    }
+
+    function addWithdrawLine() {
+      const ownerId = state.selectedOwnerId;
+      if (state.withdrawData && state.withdrawData[ownerId]) {
+        state.withdrawData[ownerId].lines.push({
+          locataireName: "Nouveau Locataire",
+          loyerMensuel: 100000,
+          moisActuel: "juin-26",
+          montantPaye: 100000,
+          reliquat: 0,
+          statut: "À jour"
+        });
+        saveWithdrawDataToLocal();
+        renderWithdrawTab();
+        showToast("Nouvelle ligne ajoutée.");
+      }
+    }
+
+    function deleteWithdrawLine(index) {
+      const ownerId = state.selectedOwnerId;
+      if (state.withdrawData && state.withdrawData[ownerId]) {
+        state.withdrawData[ownerId].lines.splice(index, 1);
+        saveWithdrawDataToLocal();
+        renderWithdrawTab();
+        showToast("Ligne retirée.");
+      }
+    }
+
+    function openWithdrawalModal(ownerId, maxAmount) {
+      const p = state.proprietaires.find(x => x.id === ownerId);
+      const defaultDate = new Date().toISOString().split('T')[0];
+      
+      showModal("Retrait de fonds", `
+        <div class="space-y-4">
+          <div class="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl space-y-2 text-xs">
+            <div class="flex justify-between">
+              <span class="font-bold text-slate-500">Propriétaire :</span>
+              <span class="font-black text-slate-850 dark:text-slate-200">${p.prenom} ${p.nom}</span>
+            </div>
+            <div class="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-2 font-bold text-primary-500">
+              <span>Solde disponible :</span>
+              <span>${maxAmount.toLocaleString()} FCFA</span>
+            </div>
+          </div>
+          
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Montant à retirer (FCFA)</label>
+            <input type="number" id="withdraw-amount" value="${maxAmount}" min="1" max="${maxAmount}" class="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" required>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Date du retrait</label>
+              <input type="date" id="withdraw-date" value="${defaultDate}" class="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" required>
+            </div>
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Motif du retrait</label>
+              <input type="text" id="withdraw-motif" value="Retrait de loyers" class="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" required>
+            </div>
+          </div>
+          
+          <div class="flex justify-end gap-3 pt-4 border-t">
+            <button onclick="closeModal()" class="px-4 py-2 text-sm font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-200/50 dark:border-slate-700/50 font-semibold">Annuler</button>
+            <button onclick="submitWithdrawal('${ownerId}', ${maxAmount})" class="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-success-500 to-success-600 hover:from-success-600 hover:to-success-700 text-white rounded-lg shadow-md shadow-success-500/10 transition-all active:scale-95">Confirmer le retrait</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function submitWithdrawal(ownerId, maxAmount) {
+      const amount = parseFloat(document.getElementById('withdraw-amount').value);
+      const date = document.getElementById('withdraw-date').value;
+      const motif = document.getElementById('withdraw-motif').value;
+
+      if (isNaN(amount) || amount <= 0) {
+        alert("Veuillez saisir un montant valide.");
+        return;
+      }
+      if (amount > maxAmount) {
+        alert("Le montant saisi dépasse le solde disponible.");
+        return;
+      }
+      if (!date || !motif) {
+        alert("La date et le motif sont requis.");
+        return;
+      }
+
+      const w = state.withdrawData[ownerId];
+      if (!w.withdrawals) {
+        w.withdrawals = [];
+      }
+
+      w.withdrawals.push({
+        id: 'wdr-' + Date.now(),
+        amount: amount,
+        date: date,
+        motif: motif
+      });
+
+      saveWithdrawDataToLocal();
+      closeModal();
+      renderOwnerSubTabContent();
+      showToast(`Retrait de ${amount.toLocaleString()} FCFA enregistré.`);
+    }
+
+    function saveOwnerInfo() {
+      const ownerId = state.selectedOwnerId;
+      const owner = state.proprietaires.find(p => p.id === ownerId);
+      if (owner) {
+        owner.prenom = document.getElementById('edit-owner-prenom').value;
+        owner.nom = document.getElementById('edit-owner-nom').value;
+        owner.email = document.getElementById('edit-owner-email').value;
+        owner.telephone = document.getElementById('edit-owner-telephone').value;
+        owner.adresse = document.getElementById('edit-owner-adresse').value;
+        owner.cinPasseport = document.getElementById('edit-owner-cin').value;
+
+        showToast("Informations du propriétaire enregistrées !");
+        renderPage();
+      }
+    }
+
+    function uploadOwnerDoc() {
+      const docName = prompt("Saisissez le nom du document (ex: Contrat_Mandat_Bailleur.pdf) :");
+      if (docName) {
+        const ownerId = state.selectedOwnerId;
+        const owner = state.proprietaires.find(p => p.id === ownerId);
+        if (owner) {
+          if (!owner.docs) {
+            owner.docs = [];
+          }
+          owner.docs.push(docName);
+          renderOwnerSubTabContent();
+          showToast(`Document "${docName}" rattaché.`);
+        }
+      }
+    }
+
+    function deleteOwnerDoc(docName) {
+      if (confirm(`Voulez-vous détacher le document "${docName}" ?`)) {
+        const ownerId = state.selectedOwnerId;
+        const owner = state.proprietaires.find(p => p.id === ownerId);
+        if (owner) {
+          owner.docs = owner.docs.filter(d => d !== docName);
+          renderOwnerSubTabContent();
+          showToast("Document détaché.");
+        }
+      }
+    }
+
+    function uploadWithdrawLogoFile(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const ownerId = state.selectedOwnerId;
+          state.withdrawData[ownerId].logoUrl = e.target.result;
+          saveWithdrawDataToLocal();
+          renderWithdrawTab();
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function printInvoice() {
+      const ownerId = state.selectedOwnerId;
+      const w = state.withdrawData[ownerId];
+      if (!w) return;
+
+      let totalPaye = 0;
+      let totalReliquats = 0;
+      w.lines.forEach(l => {
+        totalPaye += parseFloat(l.montantPaye) || 0;
+        totalReliquats += (parseFloat(l.loyerMensuel) || 0) - (parseFloat(l.montantPaye) || 0);
+      });
+      const managementFees = Math.round(totalPaye * (w.fraisRate / 100));
+      const netAmount = totalPaye - managementFees;
+
+      const printHtml = `
+        <div style="font-family: Arial, sans-serif; color: black; max-width: 800px; margin: 0 auto; padding: 20px;">
+          <!-- Top Header -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+            <div style="border: 1px solid black; padding: 10px; font-size: 10px; line-height: 1.4; max-width: 350px; white-space: pre-line;">
+              ${w.companyInfo}
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img src="${w.logoUrl || 'https://i.ibb.co/L5VbXhC/hamet-logo.png'}" style="max-height: 80px;" />
+            </div>
+          </div>
+
+          <!-- Date / Object -->
+          <div style="display: flex; justify-content: space-between; border-top: 1px solid black; border-bottom: 1px solid black; padding: 8px 0; margin: 15px 0; font-size: 11px; font-weight: bold;">
+            <span>${w.title}</span>
+            <span>Bamako le : ${w.date}</span>
+          </div>
+
+          <!-- Description -->
+          <div style="font-size: 11px; margin-bottom: 15px; line-height: 1.5;">
+            <p>Monsieur <strong style="text-decoration: underline;">${w.ownerText}</strong></p>
+            <p style="color: #555; font-style: italic; margin-top: 5px;">${w.subText}</p>
+          </div>
+
+          <!-- Table -->
+          <table style="width: 100%; border-collapse: collapse; border: 1px solid black; font-size: 10px;">
+            <thead>
+              <tr style="background-color: #1d4ed8; color: white; font-weight: bold; text-align: left;">
+                <th style="padding: 6px; border-right: 1px solid black; border-bottom: 1px solid black;">Locataires</th>
+                <th style="padding: 6px; border-right: 1px solid black; border-bottom: 1px solid black; text-align: right;">Loyer Mensuel</th>
+                <th style="padding: 6px; border-right: 1px solid black; border-bottom: 1px solid black; text-align: center;">Mois Actuel</th>
+                <th style="padding: 6px; border-right: 1px solid black; border-bottom: 1px solid black; text-align: right;">Montant payé</th>
+                <th style="padding: 6px; border-right: 1px solid black; border-bottom: 1px solid black; text-align: right;">Reliquats</th>
+                <th style="padding: 6px; text-align: center; border-bottom: 1px solid black;">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${w.lines.map(l => {
+                const reliquat = (parseFloat(l.loyerMensuel) || 0) - (parseFloat(l.montantPaye) || 0);
+                return `
+                  <tr style="border-bottom: 1px solid #ccc;">
+                    <td style="padding: 6px; border-right: 1px solid black; font-weight: bold;">${l.locataireName}</td>
+                    <td style="padding: 6px; border-right: 1px solid black; text-align: right;">${l.loyerMensuel.toLocaleString()} FCFA</td>
+                    <td style="padding: 6px; border-right: 1px solid black; text-align: center;">${l.moisActuel}</td>
+                    <td style="padding: 6px; border-right: 1px solid black; text-align: right; font-weight: bold;">${l.montantPaye.toLocaleString()} FCFA</td>
+                    <td style="padding: 6px; border-right: 1px solid black; text-align: right; font-weight: bold; color: ${reliquat > 0 ? 'red' : 'black'};">${reliquat > 0 ? reliquat.toLocaleString() + ' FCFA' : '- FCFA'}</td>
+                    <td style="padding: 6px; text-align: center; font-weight: bold; font-size: 8px;">
+                      <span style="padding: 2px 6px; border-radius: 4px; ${
+                        l.statut === 'En avance' ? 'background:#10b981;color:white;' :
+                        l.statut === 'À jour' ? 'background:#eab308;color:white;' :
+                        'background:#ef4444;color:white;'
+                      }">${l.statut}</span>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+
+          <!-- Totals block -->
+          <div style="display: flex; justify-content: flex-start; margin-top: 15px;">
+            <table style="width: 250px; font-size: 10px; border: 1px solid black; padding: 8px; background-color: #f9f9f9; border-collapse: collapse;">
+              <tr style="border-bottom: 1px solid #ddd;">
+                <td style="padding: 4px; font-weight: bold; color: #555;">TOTAL COLLECTÉ :</td>
+                <td style="padding: 4px; text-align: right; font-weight: bold;">${totalPaye.toLocaleString()} FCFA</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #ddd;">
+                <td style="padding: 4px; font-weight: bold; color: #555;">Frais de gérance (${w.fraisRate}%) :</td>
+                <td style="padding: 4px; text-align: right; font-weight: bold;">${managementFees.toLocaleString()} FCFA</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #ddd;">
+                <td style="padding: 4px; font-weight: bold; color: #555;">Reliquats restants :</td>
+                <td style="padding: 4px; text-align: right; font-weight: bold; color: red;">${totalReliquats.toLocaleString()} FCFA</td>
+              </tr>
+              <tr style="font-size: 11px; font-weight: bold; color: #1d4ed8;">
+                <td style="padding: 6px 4px 4px 4px;">NET À REVERSER :</td>
+                <td style="padding: 6px 4px 4px 4px; text-align: right; font-size: 12px; font-weight: 900;">${netAmount.toLocaleString()} FCFA</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Signatures -->
+          <div style="display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; border-top: 1px dashed black; text-align: center; font-size: 10px;">
+            <div style="width: 200px;">
+              <span style="font-weight: bold; display: block; text-transform: uppercase; color: #777; margin-bottom: 50px;">Le Bénéficiaire</span>
+              <strong style="text-decoration: underline; font-size: 11px;">${w.beneficiaireName}</strong>
+            </div>
+            <div style="width: 200px;">
+              <span style="font-weight: bold; display: block; text-transform: uppercase; color: #777; margin-bottom: 50px;">Le Gérant</span>
+              <strong style="text-decoration: underline; font-size: 11px;">${w.gerantName}</strong>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const originalBody = document.body.innerHTML;
+      document.body.innerHTML = printHtml;
+      
+      setTimeout(() => {
+        window.print();
+        document.body.innerHTML = originalBody;
+        window.location.reload();
+      }, 250);
+    }
+
+
+    // Tenant Actions
+    function sendQuittanceEmail(name) {
+      showToast(`Quittance de loyer envoyée par e-mail à ${name} !`);
+    }
+
+    // Bookkeeping PDF download simulation
+    function downloadReceipt(payId) {
+      showToast("Quittance PDF générée par le serveur PDFKit. Téléchargement lancé...");
+      // Simulating browser download
+      setTimeout(() => {
+        alert("Téléchargement du reçu PDF quittance simulé avec succès !");
+      }, 500);
+    }
+    function exportCSV() {
+      showToast("Exportation des transactions en CSV réussie !");
+    }
+
+    // Backup download simulation
+    function downloadBackup() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", "habitia_preview_backup.json");
+      dlAnchor.click();
+      showToast("Sauvegarde JSON téléchargée.");
+    }
+
+    // Default initialization
+    window.onload = () => {
+      // Auto light mode theme init
+      const root = document.documentElement;
+      root.classList.add('light');
+      loadTenantPaymentsFromLocal();
+      
+      // Auto bypass login screen since isLoggedIn is true by default
+      const screenLogin = document.getElementById('screen-login');
+      const screenMain = document.getElementById('screen-main');
+      if (screenLogin && screenMain) {
+        screenLogin.classList.add('hidden');
+        screenMain.classList.remove('hidden');
+        renderSidebar();
+        navigateTab('dashboard');
+      }
+    };
+  </script>
+</body>
+</html>

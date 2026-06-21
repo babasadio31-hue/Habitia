@@ -1,0 +1,246 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  admin
+  agent
+  comptable
+  lecture_seule
+}
+
+model User {
+  id          String   @id @default(uuid())
+  nom         String
+  email       String   @unique
+  password    String
+  role        Role     @default(lecture_seule)
+  actif       Boolean  @default(true)
+  permissions Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Proprietaire {
+  id            String     @id @default(uuid())
+  nom           String
+  prenom        String
+  email         String     @unique
+  telephone     String
+  adresse       String
+  cinPasseport  String?
+  fraisRate     Float      @default(10.0)
+  documents     Document[]
+  biens         Bien[]
+  retraits      Retrait[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+enum LocataireStatut {
+  actif
+  ancien
+  liste_attente
+}
+
+model Locataire {
+  id         String          @id @default(uuid())
+  nom        String
+  prenom     String
+  email      String          @unique
+  telephone  String
+  employeur  String?
+  garant     String?
+  statut     LocataireStatut @default(liste_attente)
+  documents  Document[]
+  contrats   Contrat[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+enum BienType {
+  appartement
+  villa
+  bureau
+  terrain
+  magasin
+}
+
+enum BienStatut {
+  disponible
+  loue
+  en_travaux
+  en_vente
+}
+
+model Bien {
+  id             String         @id @default(uuid())
+  adresse        String
+  ville          String
+  type           BienType
+  surface        Float
+  etage          Int?
+  nbPieces       Int?
+  statut         BienStatut     @default(disponible)
+  proprietaireId String
+  proprietaire   Proprietaire   @relation(fields: [proprietaireId], references: [id], onDelete: Cascade)
+  loyer          Float?
+  caution        Float?
+  photos         String[]
+  charges        String[]
+  contrats       Contrat[]
+  chantiers      Chantier[]
+  personnels     Personnel[]    @relation("PersonnelBiens")
+  vente          Vente?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Contrat {
+  id           String     @id @default(uuid())
+  bienId       String
+  bien         Bien       @relation(fields: [bienId], references: [id], onDelete: Cascade)
+  locataireId  String
+  locataire    Locataire  @relation(fields: [locataireId], references: [id], onDelete: Cascade)
+  dateDebut    DateTime
+  dateFin      DateTime
+  montantLoyer Float
+  depot        Float
+  actif        Boolean    @default(true)
+  paiements    Paiement[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+enum PaiementStatut {
+  paye
+  en_retard
+  partiel
+}
+
+enum PaiementType {
+  loyer
+  charges
+  caution
+}
+
+model Paiement {
+  id            String         @id @default(uuid())
+  contratId     String
+  contrat       Contrat        @relation(fields: [contratId], references: [id], onDelete: Cascade)
+  montant       Float
+  datePaiement  DateTime
+  statut        PaiementStatut @default(paye)
+  type          PaiementType   @default(loyer)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+enum ChantierStatut {
+  planifie
+  en_cours
+  termine
+  suspendu
+}
+
+model Chantier {
+  id           String         @id @default(uuid())
+  bienId       String
+  bien         Bien           @relation(fields: [bienId], references: [id], onDelete: Cascade)
+  titre        String
+  budget       Float
+  avancement   Float          @default(0.0)
+  statut       ChantierStatut @default(planifie)
+  dateDebut    DateTime
+  dateFin      DateTime
+  prestataires Json           // Storing array of Prestataire { nom, specialite, contact, montant }
+  documents    Document[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Personnel {
+  id            String         @id @default(uuid())
+  nom           String
+  poste         String
+  email         String         @unique
+  telephone     String
+  salaire       Float
+  dateEmbauche  DateTime
+  biensAssignes Bien[]         @relation("PersonnelBiens")
+  absences      Json?          // Array of AbsenceConge { id, dateDebut, dateFin, motif, statut }
+  planning      Json?          // Record of days and shifts e.g. { "Lundi": "9h-17h" }
+  permissions   Json?
+  ventes        Vente[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Document {
+  id             String        @id @default(uuid())
+  nom            String
+  url            String
+  type           String
+  entiteType     String        // "proprietaire", "locataire", "bien", "chantier"
+  entiteId       String
+  proprietaireId String?
+  proprietaire   Proprietaire? @relation(fields: [proprietaireId], references: [id], onDelete: Cascade)
+  locataireId    String?
+  locataire      Locataire?    @relation(fields: [locataireId], references: [id], onDelete: Cascade)
+  chantierId     String?
+  chantier       Chantier?     @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Retrait {
+  id             String       @id @default(uuid())
+  montant        Float
+  dateRetrait    DateTime
+  motif          String
+  proprietaireId String
+  proprietaire   Proprietaire @relation(fields: [proprietaireId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Depense {
+  id            String   @id @default(uuid())
+  categorie     String   // "salaire", "publicite", "internet", "telephone", "transport", "fournitures", "entretien", "autres"
+  description   String
+  montant       Float
+  date          DateTime
+  enregistrePar String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Vente {
+  id             String     @id @default(uuid())
+  bienId         String     @unique
+  bien           Bien       @relation(fields: [bienId], references: [id], onDelete: Cascade)
+  clientNom      String
+  prixVente      Float
+  commissionRate Float      @default(5.0)
+  dateVente      DateTime
+  agentId        String?
+  agent          Personnel? @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model RevenuManuel {
+  id            String   @id @default(uuid())
+  type          String   // "frais_dossier", "honoraires_gestion", "autres"
+  description   String
+  montant       Float
+  date          DateTime
+  clientNom     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
