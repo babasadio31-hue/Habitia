@@ -2284,6 +2284,9 @@ app.post('/api/locataires/:id/send-receipt', auth_1.authMiddleware, (0, auth_1.r
     }
 });
 // Server listener
-app.listen(PORT, () => {
-    console.log(`Habitia Express Server running on http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`Habitia Express Server running on http://localhost:${PORT}`);
+    });
+}
+exports.default = app;

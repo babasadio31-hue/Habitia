@@ -2476,6 +2476,10 @@ app.post('/api/locataires/:id/send-receipt', authMiddleware, requireRole(['admin
 });
 
 // Server listener
-app.listen(PORT, () => {
-  console.log(`Habitia Express Server running on http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Habitia Express Server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
