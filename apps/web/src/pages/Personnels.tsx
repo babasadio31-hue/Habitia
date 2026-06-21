@@ -83,6 +83,7 @@ const parametresTabsList = [
 export const Personnels: React.FC = () => {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -143,11 +144,13 @@ export const Personnels: React.FC = () => {
       const response = await fetchWithRetry('/api/personnels');
       if (response.ok) {
         setStaffList(await response.json());
+        setIsOffline(false);
       } else {
         throw new Error();
       }
     } catch (e) {
       console.warn("Using offline mode for Personnels.");
+      setIsOffline(true);
       // Fallback
       setStaffList([
         {
@@ -308,6 +311,11 @@ export const Personnels: React.FC = () => {
   // Delete
   const handleDelete = async (id: string) => {
     if (!await customConfirm("Voulez-vous supprimer cet employé ?")) return;
+    if (isOffline) {
+      setStaffList(staffList.filter(s => s.id !== id));
+      alert("Employé supprimé localement (Mode Hors-ligne).");
+      return;
+    }
     try {
       const response = await fetchWithRetry(`/api/personnels/${id}`, {
         method: 'DELETE'
