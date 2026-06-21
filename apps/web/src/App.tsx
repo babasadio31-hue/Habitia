@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster, toast } from 'sonner';
 import { useAuthStore } from './store/useAuthStore';
 import { useThemeStore } from './store/useThemeStore';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -78,40 +79,42 @@ export const App: React.FC = () => {
   const defaultRedirectPath = user?.permissions?.pages?.[0] || "/dashboard";
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Toaster position="top-right" richColors closeButton />
-      <BrowserRouter>
-        <Routes>
-          {/* LOGIN */}
-          <Route path="/login" element={<Login />} />
+    <GoogleOAuthProvider clientId="466480529541-49fao7ma01km2sbmaev7b8pp748lfjkn.apps.googleusercontent.com">
+      <QueryClientProvider client={queryClient}>
+        <Toaster position="top-right" richColors closeButton />
+        <BrowserRouter>
+          <Routes>
+            {/* LOGIN */}
+            <Route path="/login" element={<Login />} />
 
-          {/* SECURE ROUTES */}
-          <Route
-            path="/*"
-            element={
-              <PrivateRoute>
-                <Layout>
-                  <Routes>
-                    <Route path="/dashboard" element={<PermissionGate path="/dashboard"><Dashboard /></PermissionGate>} />
-                    <Route path="/proprietaires" element={<PermissionGate path="/proprietaires"><Proprietaires /></PermissionGate>} />
-                    <Route path="/locataires" element={<PermissionGate path="/locataires"><Locataires /></PermissionGate>} />
-                    <Route path="/biens" element={<PermissionGate path="/biens"><Biens /></PermissionGate>} />
-                    <Route path="/construction" element={<PermissionGate path="/construction"><Construction /></PermissionGate>} />
-                    <Route path="/comptabilite" element={<PermissionGate path="/comptabilite"><Comptabilite /></PermissionGate>} />
-                    <Route path="/personnels" element={<PermissionGate path="/personnels"><Personnels /></PermissionGate>} />
-                    <Route path="/parametres" element={<PermissionGate path="/parametres"><Parametres /></PermissionGate>} />
-                    
-                    {/* Fallback redirects */}
-                    <Route path="/" element={<Navigate to={defaultRedirectPath} replace />} />
-                    <Route path="*" element={<Navigate to={defaultRedirectPath} replace />} />
-                  </Routes>
-                </Layout>
-              </PrivateRoute>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
+            {/* SECURE ROUTES */}
+            <Route
+              path="/*"
+              element={
+                <PrivateRoute>
+                  <Layout>
+                    <Routes>
+                      <Route path="/dashboard" element={<PermissionGate path="/dashboard"><Dashboard /></PermissionGate>} />
+                      <Route path="/proprietaires" element={<PermissionGate path="/proprietaires"><Proprietaires /></PermissionGate>} />
+                      <Route path="/locataires" element={<PermissionGate path="/locataires"><Locataires /></PermissionGate>} />
+                      <Route path="/biens" element={<PermissionGate path="/biens"><Biens /></PermissionGate>} />
+                      <Route path="/construction" element={<PermissionGate path="/construction"><Construction /></PermissionGate>} />
+                      <Route path="/comptabilite" element={<PermissionGate path="/comptabilite"><Comptabilite /></PermissionGate>} />
+                      <Route path="/personnels" element={<PermissionGate path="/personnels"><Personnels /></PermissionGate>} />
+                      <Route path="/parametres" element={<PermissionGate path="/parametres"><Parametres /></PermissionGate>} />
+                      
+                      {/* Fallback redirects */}
+                      <Route path="/" element={<Navigate to={defaultRedirectPath} replace />} />
+                      <Route path="*" element={<Navigate to={defaultRedirectPath} replace />} />
+                    </Routes>
+                  </Layout>
+                </PrivateRoute>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   );
 };
 export default App;

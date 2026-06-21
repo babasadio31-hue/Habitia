@@ -47,9 +47,11 @@ const client_1 = require("@prisma/client");
 const db_1 = require("./services/db");
 const auth_1 = require("./middlewares/auth");
 const pdf_1 = require("./services/pdf");
+const google_auth_library_1 = require("google-auth-library");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'habitia-super-secret-jwt-key-2026';
+const googleClient = new google_auth_library_1.OAuth2Client("466480529541-49fao7ma01km2sbmaev7b8pp748lfjkn.apps.googleusercontent.com");
 app.use((0, cors_1.default)({ origin: '*' }));
 app.use(express_1.default.json());
 // Setup upload folder
@@ -218,6 +220,55 @@ app.post('/api/auth/register', async (req, res) => {
             return res.status(400).json({ error: 'Un compte avec cette adresse email existe déjà.' });
         }
         return res.status(500).json({ error: 'Erreur lors de la création du compte.' });
+    }
+});
+app.post('/api/auth/google', async (req, res) => {
+    const { token } = req.body;
+    if (!token) {
+        return res.status(400).json({ error: 'Jeton Google requis' });
+    }
+    try {
+        const ticket = await googleClient.verifyIdToken({
+            idToken: token,
+            audience: "466480529541-49fao7ma01km2sbmaev7b8pp748lfjkn.apps.googleusercontent.com",
+        });
+        const payload = ticket.getPayload();
+        if (!payload || !payload.email) {
+            return res.status(400).json({ error: 'Jeton Google invalide' });
+        }
+        const email = payload.email.toLowerCase();
+        const nom = payload.name || "Utilisateur Google";
+        let user = await db_1.db.user.findUnique({
+            where: { email }
+        });
+        if (!user) {
+            // Auto-provision user as admin
+            user = await db_1.db.user.create({
+                data: {
+                    nom,
+                    email,
+                    password: bcrypt.hashSync(Math.random().toString(36), 10), // Random unguessable password for OAuth-only users
+                    role: 'admin',
+                    actif: true
+                }
+            });
+        }
+        if (!user.actif) {
+            return res.status(401).json({ error: 'Ce compte est inactif' });
+        }
+        const appToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+        const personnel = await db_1.db.personnel.findUnique({
+            where: { email }
+        });
+        const permissions = personnel?.permissions || user.permissions || null;
+        // Exclude password from output
+        const { password: _, ...userWithoutPassword } = user;
+        userWithoutPassword.permissions = permissions;
+        return res.json({ token: appToken, user: userWithoutPassword });
+    }
+    catch (error) {
+        console.error('Google auth error:', error);
+        return res.status(500).json({ error: "Erreur lors de l'authentification avec Google" });
     }
 });
 // ==========================================

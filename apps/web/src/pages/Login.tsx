@@ -7,6 +7,7 @@ import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { Button } from '../components/ui';
 import { fetchWithRetry } from '../utils/api';
+import { GoogleLogin } from '@react-oauth/google';
 
 const authSchema = z.object({
   nom: z.string().optional(),
@@ -38,6 +39,31 @@ export const Login: React.FC = () => {
       password: '',
     }
   });
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetchWithRetry('/api/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ token: credentialResponse.credential })
+      });
+
+      const resData = await response.json();
+
+      if (response.ok) {
+        login(resData.user, resData.token);
+        navigate('/dashboard');
+      } else {
+        setError(resData.error || 'Erreur lors de l\'authentification avec Google.');
+      }
+    } catch (e) {
+      console.error("Google auth error:", e);
+      setError("Impossible de joindre le serveur. Assurez-vous que l'API est démarrée.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const onSubmit = async (data: AuthFormValues) => {
     setIsLoading(true);
@@ -255,6 +281,27 @@ export const Login: React.FC = () => {
                   isRegister ? 'Créer mon compte' : 'Se connecter'
                 )}
               </button>
+            </div>
+
+            {/* GOOGLE SIGN IN BUTTON */}
+            <div className="pt-2 flex flex-col items-center justify-center w-full">
+              <div className="flex items-center w-full my-2">
+                <hr className="w-full border-slate-200 dark:border-slate-800" />
+                <span className="px-2.5 text-2xs text-slate-400 dark:text-slate-500 uppercase font-semibold">ou</span>
+                <hr className="w-full border-slate-200 dark:border-slate-800" />
+              </div>
+              
+              <div className="w-full flex justify-center GoogleLoginWrapper">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError("Échec de l'authentification avec Google")}
+                  theme="outline"
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                  width="100%"
+                />
+              </div>
             </div>
 
           </form>
